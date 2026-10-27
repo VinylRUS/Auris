@@ -442,13 +442,19 @@ impl App {
     // ------------------------------------------------------------------
 
     /// Переключает панель текста песни (кнопка в плеере).
+    /// Владелец состояния — Rust: Slint только вызывает этот колбэк.
     pub fn toggle_lyrics_panel(self: &Arc<Self>) {
         let open = self
             .ui
             .upgrade()
             .map(|ui| !ui.get_lyrics_open())
             .unwrap_or(false);
-        self.ui_inv(move |ui| ui.set_lyrics_open(open));
+        self.ui_inv(move |ui| {
+            ui.set_lyrics_open(open);
+            if open {
+                ui.set_queue_open(false);
+            }
+        });
         if open {
             self.load_lyrics();
         }

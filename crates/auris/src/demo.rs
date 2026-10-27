@@ -197,6 +197,11 @@ pub fn fill(ui: &MainWindow) {
     ui.set_lyrics_text(
         "Демо-строка первой строфы\nвторая строка звучит в тишине\n\nПрипев:\nмы слушаем музыку\nвесь день напролёт\n\nФинальный куплет\nи тихий аккорд".into(),
     );
+    // AURIS_UI_DEMO_LYRICS=1 — сразу открыть панель текста (для скриншотов).
+    if std::env::var("AURIS_UI_DEMO_LYRICS").is_ok() {
+        ui.set_queue_open(false);
+        ui.set_lyrics_open(true);
+    }
 
     // ---- Радио: станции дашборда ----
     let stations: Vec<StationItem> = vec![
