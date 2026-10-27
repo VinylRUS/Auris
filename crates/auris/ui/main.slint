@@ -251,7 +251,8 @@ export component MainWindow inherits Window {
                 pages-host := Rectangle {
                     x: 264px;
                     y: 0;
-                    width: parent.width - self.x - (root.queue-open && !root.lyrics-open ? 300px : 0px);
+                    width: parent.width - self.x
+                        - (root.lyrics-open ? 380px : (root.queue-open ? 300px : 0px));
                     height: parent.height - 104px;
 
                     if root.page == 0: HomePage {
@@ -415,8 +416,7 @@ export component MainWindow inherits Window {
                         if (root.queue-open) { root.lyrics-open = false; }
                     }
                     toggle-lyrics => {
-                        root.lyrics-open = !root.lyrics-open;
-                        if (root.lyrics-open) { root.queue-open = false; }
+                        // Состоянием владеет Rust (единая точка тоггла).
                         root.toggle-lyrics();
                     }
                 }
