@@ -568,7 +568,7 @@ dependencies = [
 
 [[package]]
 name = "auris"
-version = "0.0.1-beta.1"
+version = "0.0.1-beta.2"
 dependencies = [
  "anyhow",
  "auris-api",
@@ -593,7 +593,7 @@ dependencies = [
 
 [[package]]
 name = "auris-api"
-version = "0.0.1-beta.1"
+version = "0.0.1-beta.2"
 dependencies = [
  "anyhow",
  "log",
@@ -608,7 +608,7 @@ dependencies = [
 
 [[package]]
 name = "auris-core"
-version = "0.0.1-beta.1"
+version = "0.0.1-beta.2"
 dependencies = [
  "anyhow",
  "auris-api",
@@ -626,7 +626,7 @@ dependencies = [
 
 [[package]]
 name = "auris-player"
-version = "0.0.1-beta.1"
+version = "0.0.1-beta.2"
 dependencies = [
  "anyhow",
  "log",

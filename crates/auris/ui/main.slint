@@ -111,7 +111,7 @@ export component MainWindow inherits Window {
     in-out property <string> settings-accent: "";
     in-out property <int> settings-quality: 2;
     in-out property <string> settings-cache-size: "";
-    in-out property <string> settings-version: "0.0.1a";
+    in-out property <string> settings-version: "0.0.1c";
     in-out property <string> settings-storage: "";
 
     // ---- Обновление ----
@@ -218,7 +218,9 @@ export component MainWindow inherits Window {
                 SideBar {
                     x: 0;
                     y: 0;
-                    height: 100%;
+                    // Выше плавающего плеера: «Настройки» и карточка профиля
+                    // не должны уходить под панель воспроизведения.
+                    height: parent.height - 104px;
                     page <=> root.page;
                     user-name: root.user-name;
                     user-plan: root.user-plan;
