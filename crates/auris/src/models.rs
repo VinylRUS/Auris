@@ -8,7 +8,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
-use auris_api::{Playlist, Track};
+use auris_api::{Album, Artist, Playlist, Track};
 use slint::{Image, SharedString};
 
 use crate::{BestItem, TileItem, TrackItem};
@@ -31,6 +31,10 @@ pub struct CoversSnapshot {
     pub track_covers: HashMap<i64, String>,
     /// Пути обложек плейлистов: (uid, kind) → файл в кеше.
     pub playlist_covers: HashMap<(i64, i64), String>,
+    /// Пути обложек альбомов: album_id → файл в кеше.
+    pub album_covers: HashMap<i64, String>,
+    /// Пути обложек исполнителей: artist_id → файл в кеше.
+    pub artist_covers: HashMap<i64, String>,
     /// Лайкнутые треки.
     pub likes: HashSet<i64>,
 }
@@ -128,6 +132,36 @@ pub fn likes_tile(count: usize) -> TileItem {
     }
 }
 
+/// Плитка альбома (вызывать в event loop).
+pub fn album_tile(a: &Album, cov: &CoversSnapshot) -> TileItem {
+    TileItem {
+        title: s(a.title.clone()),
+        subtitle: s(a
+            .artists
+            .first()
+            .map(|x| x.name.clone())
+            .unwrap_or_else(|| "Альбом".into())),
+        cover: load_img(cov.album_covers.get(&a.id)),
+        cover_variant: cover_variant(a.id),
+        item_type: 3,
+        owner_uid: 0,
+        kind: a.id as i32,
+    }
+}
+
+/// Плитка исполнителя (вызывать в event loop).
+pub fn artist_tile(a: &Artist, cov: &CoversSnapshot) -> TileItem {
+    TileItem {
+        title: s(a.name.clone()),
+        subtitle: s("Исполнитель"),
+        cover: load_img(cov.artist_covers.get(&a.id)),
+        cover_variant: cover_variant(a.id),
+        item_type: 4,
+        owner_uid: 0,
+        kind: a.id as i32,
+    }
+}
+
 /// Плитка трека-истории (вызывать в event loop).
 pub fn history_tile(t: &Track, cov: &CoversSnapshot) -> TileItem {
     TileItem {
@@ -177,7 +211,7 @@ pub fn best_item(best: &Option<auris_api::Best>, cov: &CoversSnapshot) -> Option
                 .first()
                 .map(|a| a.name.clone())
                 .unwrap_or_default()),
-            cover: Image::default(),
+            cover: load_img(cov.album_covers.get(&al.id)),
             cover_variant: cover_variant(al.id),
             track_id: 0,
             owner_uid: 0,

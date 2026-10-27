@@ -80,6 +80,8 @@ export component MainWindow inherits Window {
     in-out property <string> playlist-subtitle: "";
     in-out property <[TrackItem]> playlist-tracks;
     in-out property <[TileItem]> library-playlists;
+    in-out property <[TileItem]> library-albums;
+    in-out property <[TileItem]> library-artists;
 
     // ---- Скачанное ----
     in-out property <[TrackItem]> downloads-items;
@@ -267,6 +269,8 @@ export component MainWindow inherits Window {
                     if root.page == 2: LibraryPage {
                         width: 100%; height: 100%;
                         playlists: root.library-playlists;
+                        albums: root.library-albums;
+                        artists: root.library-artists;
                         playlist-open <=> root.playlist-open;
                         playlist-title <=> root.playlist-title;
                         playlist-subtitle <=> root.playlist-subtitle;

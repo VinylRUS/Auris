@@ -101,7 +101,28 @@ pub(crate) fn init_search(app: &Arc<App>, ui: &MainWindow) {
     }
     {
         let app = Arc::clone(app);
-        ui.on_play_best(move || app.play_from_context(0, 1));
+        ui.on_play_best(move || {
+            // Лучший результат: трек — играем, альбом/исполнителя/плейлист — открываем.
+            let best = app.ui.upgrade().map(|ui| ui.get_search_best());
+            if let Some(best) = best {
+                match best.item_type {
+                    2 => {
+                        let app = Arc::clone(&app);
+                        app.spawn(|app| async move { app.open_album(best.kind as i64).await });
+                    }
+                    1 => {
+                        let app = Arc::clone(&app);
+                        app.spawn(|app| async move { app.open_artist(best.kind as i64).await });
+                    }
+                    3 => {
+                        let app = Arc::clone(&app);
+                        let (uid, kind) = (best.owner_uid as i64, best.kind as i64);
+                        app.spawn(|app| async move { app.open_playlist(uid, kind).await });
+                    }
+                    _ => app.play_from_context(0, 1),
+                }
+            }
+        });
     }
     {
         let app = Arc::clone(app);
@@ -156,7 +177,9 @@ pub(crate) fn init_home(app: &Arc<App>, ui: &MainWindow) {
                             app.spawn_play(0);
                         }
                     }
-                    _ => app.open_likes().await,
+                    2 => app.open_likes().await,
+                    3 => app.open_album(kind as i64).await,
+                    _ => app.open_artist(kind as i64).await,
                 }
             });
         });
@@ -508,6 +531,13 @@ impl App {
                     .map(|b| b.results.clone())
                     .unwrap_or_default();
                 self.fill_track_covers(&tracks, &mut cov).await;
+                // Обложка лучшего результата-альбома.
+                if let Some(al) = search.best.as_ref().and_then(|b| b.as_album()) {
+                    if let Some(url) = al.cover_url("300x300") {
+                        let path = self.cache.cover(&url).await;
+                        cov.album_covers.insert(al.id, path);
+                    }
+                }
                 {
                     let mut cache = self.ui_cache.lock().expect("cache");
                     cache.search = tracks.clone();
@@ -709,24 +739,17 @@ impl App {
                     return;
                 }
             };
+            // Обложки альбомов (путями — Image создаётся в event loop).
+            let mut cov = models::CoversSnapshot::default();
+            for a in &albums {
+                if let Some(url) = a.cover_url("300x300") {
+                    let path = self.cache.cover(&url).await;
+                    cov.album_covers.insert(a.id, path);
+                }
+            }
             self.ui_inv(move |ui| {
-                let tiles: Vec<crate::TileItem> = albums
-                    .iter()
-                    .map(|a| crate::TileItem {
-                        title: models::s(a.title.clone()),
-                        subtitle: models::s(
-                            a.artists
-                                .first()
-                                .map(|x| x.name.clone())
-                                .unwrap_or_default(),
-                        ),
-                        cover: slint::Image::default(),
-                        cover_variant: models::cover_variant(a.id),
-                        item_type: 1,
-                        owner_uid: 0,
-                        kind: a.id as i32,
-                    })
-                    .collect();
+                let tiles: Vec<crate::TileItem> =
+                    albums.iter().map(|a| models::album_tile(a, &cov)).collect();
                 ui.set_home_generated(slint::ModelRc::new(std::rc::Rc::new(
                     slint::VecModel::from(tiles),
                 )));
@@ -794,5 +817,97 @@ impl App {
             }
             Err(e) => log::error!("likes: {e}"),
         }
+    }
+
+    /// Открывает альбом на странице библиотеки (`GET /albums/{id}/with-tracks`).
+    async fn open_album(self: &Arc<Self>, album_id: i64) {
+        let client = self.api.lock().expect("api").clone();
+        let album = match client.album_with_tracks(album_id).await {
+            Ok(a) => a,
+            Err(e) => {
+                log::error!("open album {album_id}: {e}");
+                return;
+            }
+        };
+        let tracks = album.all_tracks();
+        if tracks.is_empty() {
+            log::warn!("альбом {album_id} без треков");
+            return;
+        }
+        let mut cov = models::CoversSnapshot::default();
+        self.fill_track_covers(&tracks, &mut cov).await;
+        if let Some(url) = album.album.cover_url("400x400") {
+            let path = self.cache.cover(&url).await;
+            cov.album_covers.insert(album.album.id, path);
+        }
+        let title = album.album.title.clone();
+        let artist_line = album
+            .album
+            .artists
+            .iter()
+            .map(|a| a.name.clone())
+            .collect::<Vec<_>>()
+            .join(", ");
+        let subtitle = format!(
+            "{}{} · {} треков",
+            artist_line,
+            album
+                .album
+                .year
+                .map(|y| format!(" · {y}"))
+                .unwrap_or_default(),
+            tracks.len()
+        );
+        {
+            let mut cache = self.ui_cache.lock().expect("cache");
+            cache.playlist_tracks = tracks.clone();
+            cache.covers.track_covers.extend(cov.track_covers.clone());
+        }
+        self.ui_inv(move |ui| {
+            ui.set_playlist_title(models::s(title));
+            ui.set_playlist_subtitle(models::s(subtitle));
+            ui.set_playlist_open(true);
+            ui.set_page(2);
+        });
+        self.rebuild_models();
+    }
+
+    /// Открывает карточку исполнителя с популярными треками
+    /// (`GET /artists/{id}/brief-info`).
+    async fn open_artist(self: &Arc<Self>, artist_id: i64) {
+        let client = self.api.lock().expect("api").clone();
+        let info = match client.artists_brief_info(artist_id).await {
+            Ok(i) => i,
+            Err(e) => {
+                log::error!("open artist {artist_id}: {e}");
+                return;
+            }
+        };
+        let tracks = info.popular_tracks;
+        if tracks.is_empty() {
+            log::warn!("у исполнителя {} нет треков", info.artist.name);
+            return;
+        }
+        let mut cov = models::CoversSnapshot::default();
+        self.fill_track_covers(&tracks, &mut cov).await;
+        if let Some(url) = info.artist.cover.as_ref().and_then(|c| c.url("400x400")) {
+            let path = self.cache.cover(&url).await;
+            cov.artist_covers.insert(info.artist.id, path);
+        }
+        let title = info.artist.name.clone();
+        let count = tracks.len();
+        let subtitle = format!("Популярные треки · {count}");
+        {
+            let mut cache = self.ui_cache.lock().expect("cache");
+            cache.playlist_tracks = tracks.clone();
+            cache.covers.track_covers.extend(cov.track_covers.clone());
+        }
+        self.ui_inv(move |ui| {
+            ui.set_playlist_title(models::s(title));
+            ui.set_playlist_subtitle(models::s(subtitle));
+            ui.set_playlist_open(true);
+            ui.set_page(2);
+        });
+        self.rebuild_models();
     }
 }
