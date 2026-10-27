@@ -144,7 +144,9 @@ fn install_windows(app: &Arc<App>) {
                             log::info!("установщик запущен: {}", path.display());
                             // Закрываем окно: run() вернёт управление,
                             // main сохранит настройки и выйдет.
-                            app.ui_inv(|ui| ui.hide());
+                            app.ui_inv(|ui| {
+                                let _ = ui.hide();
+                            });
                         }
                         Err(e) => {
                             let msg = format!("Не удалось запустить установщик: {e}");
