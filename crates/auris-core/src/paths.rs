@@ -179,14 +179,11 @@ mod tests {
 
     #[test]
     fn override_wins_over_everything() {
-        let d = choose_root(
-            Some(Path::new("/tmp/auris-test-data")),
-            Some(Path::new("/usr/bin")),
-        );
-        assert_eq!(
-            d,
-            RootDecision::Override(PathBuf::from("/tmp/auris-test-data"))
-        );
+        // Абсолютный путь платформонезависимо: на Windows «/tmp/...»
+        // не абсолютный (нет буквы диска) и override был бы проигнорирован.
+        let dir = std::env::temp_dir().join("auris-test-data");
+        let d = choose_root(Some(&dir), Some(Path::new("/usr/bin")));
+        assert_eq!(d, RootDecision::Override(dir));
     }
 
     #[test]
