@@ -91,13 +91,13 @@ jobs:
         shell: pwsh
         run: |
           cd target\release
-          7z a ..\..\..\${{ matrix.artifact }}.zip auris.exe
+          7z a ..\..\${{ matrix.artifact }}.zip auris.exe
 
       - name: Package (Unix)
         if: runner.os != 'Windows'
-        run: |
-          cd target/release
-          tar czf ../../../${{ matrix.artifact }}.tar.gz auris
+        # -C: архивируем без cd — относительные пути в actions чреваты
+        # выходом за пределы workspace (было ../../../ = баг v0.0.1a)
+        run: tar czf ${{ matrix.artifact }}.tar.gz -C target/release auris
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

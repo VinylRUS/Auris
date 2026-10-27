@@ -7,17 +7,33 @@
 
 ## Сессия 3 — 2026-10-27 (продолжение): фикс Windows-сборки, worklog в репо
 
-**Задача:** CI на main упал на Windows; перенести worklog в репозиторий.
+**Задача:** CI на main упал на Windows; перенести worklog в репозиторий;
+выпустить релиз v0.0.1b.
 
-- **Причина падения:** `app.ui_inv(|ui| ui.hide())` — в Slint 1.18
+- **Причина падения main-CI:** `app.ui_inv(|ui| ui.hide())` — в Slint 1.18
   `ComponentHandle::hide()` возвращает `Result<(), PlatformError>`, а замыкание
   `ui_inv` должно возвращать `()`. Локально на Linux не ловилось: код под
   `#[cfg(target_os = "windows")]`.
-- **Фикс:** `app.ui_inv(|ui| { let _ = ui.hide(); });`
+- **Фикс:** `app.ui_inv(|ui| { let _ = ui.hide(); });` — main зелёный на 3 ОС.
 - **Вывод на будущее:** Windows-only ветки (`cfg!`) не проверяются локальной
-  сборкой на Linux — при правках cross-platform кода проверять типы вручную
-  или поднимать cross-check.
-- Этот файл (`WORKLOG.md`) теперь живёт в репо и коммитится каждой сессией.
+  сборкой на Linux — при правках cross-platform кода проверять типы вручную.
+
+### Релизный пайплайн v0.0.1b (тег): первый прогон упал на macOS
+
+- **Диагноз:** шаг Package делал `cd target/release && tar czf ../../../…` —
+  из `target/release` три уровня вверх = **выше корня workspace**
+  (`/Users/runner/work/Auris`, а workspace — `…/Auris/Auris`). Архив
+  создавался вне workspace, upload-artifact (`if-no-files-found: error`)
+  его не находил → failure на macOS/Ubuntu.
+- **Это старый баг из v0.0.1a:** прежний workflow крепил файлы к релизу
+  мягким glob’ом — пустое совпадение молча пропускалось, поэтому релиз
+  v0.0.1a «успешен», но без ассетов.
+- **Windows прошёл** (баг замаскирован: `Auris-Setup-*.exe` лежит в корне
+  workspace — upload нашёл его) — **Inno Setup установщик собирается**, ✅.
+- **Фикс:** Unix: `tar czf … -C target/release auris` (без cd);
+  Windows: `7z a ..\..\…` (два уровня, не три).
+- **Ре-тег:** тег удалён и пересоздан на фиксовом коммите
+  (workflow читается из коммита тега — иначе фиксы не подхватятся).
 
 ---
 
