@@ -468,15 +468,24 @@ impl App {
     }
 }
 
-/// Человекочитаемая версия: `0.0.1-beta.1` → `0.0.1b`.
+/// Человекочитаемая версия: `0.0.1-alpha.1` → `0.0.1a`, `0.0.1-beta.1` →
+/// `0.0.1b`, `0.0.1-beta.2` → `0.0.1c`, `0.0.1-rc.1` → `0.0.1rc`.
 pub fn display_version() -> String {
-    env!("CARGO_PKG_VERSION")
-        .replace("-alpha.1", "a")
-        .replace("-beta.1", "b")
-        .replace("-rc.1", "rc")
-        .replace("-alpha.", "a")
-        .replace("-beta.", "b")
-        .replace("-rc.", "rc")
+    let v = env!("CARGO_PKG_VERSION");
+    let Some((core, suffix)) = v.rsplit_once('-') else {
+        return v.to_string();
+    };
+    let (kind, num) = match suffix.split_once('.') {
+        Some((k, n)) => (k, n.parse::<u32>().unwrap_or(1).max(1)),
+        None => (suffix, 1),
+    };
+    match kind {
+        // alpha.1 → «a», beta.1 → «b», beta.2 → «c», beta.3 → «d»…
+        "alpha" => format!("{core}{}", char::from(b'a' + (num - 1) as u8)),
+        "beta" => format!("{core}{}", char::from(b'b' + (num - 1) as u8)),
+        "rc" => format!("{core}rc{num}"),
+        _ => v.to_string(),
+    }
 }
 
 /// Приветствие по времени суток (UTC+3).
