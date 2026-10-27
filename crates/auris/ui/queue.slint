@@ -52,8 +52,13 @@ export component QueuePanel inherits Rectangle {
         }
 
         // Список с прокруткой
-        Flickable {
+        Rectangle {
             vertical-stretch: 1;
+
+            Flickable {
+                width: parent.width;
+                height: parent.height;
+                content-width: self.width;   // разрывает цикл min-width (дефолт смотрит на детей)
             content-height: 64px + 44px * root.items.length + 16px;
             VerticalLayout {
                 alignment: start;
@@ -79,6 +84,7 @@ export component QueuePanel inherits Rectangle {
                         }
                         VerticalLayout {
                             alignment: center;
+                            horizontal-stretch: 1;
                             Text {
                                 text: item.title;
                                 font-size: 13.5px;
@@ -92,8 +98,12 @@ export component QueuePanel inherits Rectangle {
                                 color: Theme.accent;
                             }
                         }
-                        if item.is-playing: EqBars {
-                            y: (parent.height - self.height) / 2;
+                        Rectangle {
+                            width: 16px;
+                            if item.is-playing: EqBars {
+                                x: 0;
+                                y: (parent.height - self.height) / 2;
+                            }
                         }
                     }
                 }
@@ -120,6 +130,7 @@ export component QueuePanel inherits Rectangle {
                         }
                         VerticalLayout {
                             alignment: center;
+                            horizontal-stretch: 1;
                             Text {
                                 text: item.title;
                                 font-size: 13px;
@@ -138,22 +149,28 @@ export component QueuePanel inherits Rectangle {
                             font-size: 12px;
                             color: Theme.text-3;
                             vertical-alignment: center;
-                            opacity: ta.has-hover ? 0 : 1;
-                            animate opacity { duration: 100ms; }
                         }
-                        // Удаление из очереди (при наведении)
+                    }
+                    // Удаление из очереди — поверх длительности (без сдвига вёрстки)
+                    Rectangle {
+                        width: 34px;
+                        x: parent.width - self.width - 4px;
+                        height: 100%;
+                        clip: false;
                         IconButton {
                             source: Icons.close;
                             size: 24px;
                             icon-size: 11px;
                             opacity: ta.has-hover ? 1 : 0;
                             animate opacity { duration: 100ms; }
+                            x: (parent.width - 24px) / 2;
                             y: (parent.height - 24px) / 2;
                             clicked => { root.remove-index(i); }
                         }
                     }
                 }
             }
+                    }
         }
     }
 }

@@ -1,7 +1,7 @@
 // Библиотека: сетка плейлистов + открытый плейлист (таблица треков).
 import { Theme } from "../theme.slint";
 import { Icons, Icon } from "../icons.slint";
-import { ActionButton, IconButton, SectionHead, TileCard, TrackRow } from "../widgets.slint";
+import { ActionButton, IconButton, SectionHead, TileGrid, TrackRow } from "../widgets.slint";
 import { TileItem, TrackItem } from "../structs.slint";
 
 export component LibraryPage inherits Rectangle {
@@ -10,6 +10,8 @@ export component LibraryPage inherits Rectangle {
     in property <string> playlist-title: "";
     in property <string> playlist-subtitle: "";
     in property <[TrackItem]> playlist-tracks;
+    // Высота сетки плейлистов — публикуется из условия (для Flickable).
+    property <length> grid-h: 0px;
 
     callback open-tile(TileItem);
     callback close-playlist();
@@ -24,11 +26,16 @@ export component LibraryPage inherits Rectangle {
         padding-top: 14px;
         padding-right: 24px;
 
-        Flickable {
+        Rectangle {
             vertical-stretch: 1;
+
+            Flickable {
+                width: parent.width;
+                height: parent.height;
+                content-width: self.width;   // разрывает цикл min-width (дефолт смотрит на детей)
             content-height: root.playlist-open
                 ? 150px + 52px * root.playlist-tracks.length
-                : 280px;
+                : 118px + root.grid-h;
 
             VerticalLayout {
                 alignment: start;
@@ -105,15 +112,11 @@ export component LibraryPage inherits Rectangle {
                         }
                     }
 
-                    HorizontalLayout {
-                        spacing: 18px;
-                        for tile in root.playlists: TileCard {
-                            title: tile.title;
-                            subtitle: tile.subtitle;
-                            cover-image: tile.cover;
-                            cover-variant: tile.cover-variant;
-                            clicked => { root.open-tile(tile); }
-                        }
+                    library-grid := TileGrid {
+                        items: root.playlists;
+                        target-size: 172px;
+                        tile-clicked(t) => { root.open-tile(t); }
+                        changed height => { root.grid-h = self.height; }
                     }
 
                     if root.playlists.length == 0: Text {
@@ -124,6 +127,7 @@ export component LibraryPage inherits Rectangle {
                     Rectangle { height: 12px; }
                 }
             }
+                    }
         }
     }
 }

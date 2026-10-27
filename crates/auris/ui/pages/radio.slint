@@ -1,6 +1,105 @@
-// Радио: станции по жанрам (сиды нового Session API).
+// Радио: станции по жанрам и настроению (сиды Session API).
+// Карточки-станции с градиентами — по мотивам Яндекс.Музыки.
 import { Theme } from "../theme.slint";
-import { Chip } from "../widgets.slint";
+import { Icons, Icon } from "../icons.slint";
+
+// Поток карточек с переносом по строкам и растяжкой на всю ширину.
+// Карточки — прямые дети; каждая знает свой индекс в потоке.
+component TileFlow inherits Rectangle {
+    in property <int> count: 0;          // всего карточек
+    in property <length> target-size: 156px;  // желаемый размер
+    in property <length> gap: 16px;
+    // не ограничиваем родителя (см. TileGrid)
+    min-width: 0px;
+    max-width: 16777215px;
+    preferred-width: 0px;
+    out property <int> cols: max(1, Math.floor((self.width + gap) / (target-size + gap)));
+    property <int> rows: count == 0 ? 0 : Math.ceil(count / cols);
+    // фактический размер карточки: растягиваем колонки на всю ширину
+    out property <length> tile-w: (self.width - gap * (cols - 1)) / cols;
+    height: rows == 0 ? 0px : rows * tile-w + (rows - 1) * gap;
+}
+
+// Карточка станции: градиентный квадрат с иконкой и названием.
+component StationCard inherits Rectangle {
+    in property <string> label: "";
+    in property <int> variant: 1;
+    in property <int> index: 0;
+    in property <int> cols: 4;
+    in property <length> tile-size: 156px;
+    in property <length> gap: 16px;
+    in property <image> glyph: Icons.radio;
+    callback clicked;
+
+    width: tile-size;
+    height: tile-size;
+    x: Math.mod(index, cols) * (tile-size + gap);
+    y: Math.floor(index / cols) * (tile-size + gap);
+    border-radius: 12px;
+    clip: true;
+
+    // Градиентные заглушки (спокойная палитра, без «кислоты»)
+    if variant == 1: Rectangle { background: @linear-gradient(135deg, #312E81, #1E3A8A); }
+    if variant == 2: Rectangle { background: @linear-gradient(135deg, #0F766E, #155E75); }
+    if variant == 3: Rectangle { background: @linear-gradient(135deg, #7C2D12, #9A3412); }
+    if variant == 4: Rectangle { background: @linear-gradient(135deg, #581C87, #6D28D9); }
+    if variant == 5: Rectangle { background: @linear-gradient(135deg, #831843, #9D174D); }
+    if variant == 6: Rectangle { background: @linear-gradient(135deg, #1E293B, #334155); }
+    if variant == 7: Rectangle { background: @linear-gradient(135deg, #365314, #3F6212); }
+    if variant == 8: Rectangle { background: @linear-gradient(135deg, #713F12, #854D0E); }
+
+    // Мягкая виньетка для читаемости текста
+    Rectangle {
+        background: @linear-gradient(180deg, #00000000 45%, #66000000);
+    }
+
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+
+    // hover: лёгкая подсветка + play
+    Rectangle {
+        background: Theme.fill-hover;
+        opacity: ta.has-hover ? 1 : 0;
+        animate opacity { duration: 130ms; }
+    }
+    Rectangle {
+        width: 42px; height: 42px;
+        border-radius: 21px;
+        x: parent.width - self.width - 14px;
+        y: parent.height - self.height - 46px;
+        background: Theme.accent-deep;
+        opacity: ta.has-hover ? 1 : 0;
+        animate opacity { duration: 130ms; }
+        Icon {
+            x: (parent.width - self.width) / 2 + 1px;
+            y: (parent.height - self.height) / 2;
+            source: Icons.play;
+            size: 17px;
+            tint: Theme.text-on-accent;
+        }
+    }
+
+    Icon {
+        x: 16px;
+        y: 16px;
+        source: root.glyph;
+        size: 26px;
+        tint: rgba(255, 255, 255, 0.9);
+    }
+
+    Text {
+        text: root.label;
+        font-size: 15px;
+        font-weight: 700;
+        color: Theme.text;
+        x: 16px;
+        y: parent.height - self.height - 14px;
+        width: parent.width - 32px;
+        overflow: elide;
+    }
+}
 
 export component RadioPage inherits Rectangle {
     callback start-station(string, string);   // (seed, название)
@@ -24,16 +123,23 @@ export component RadioPage inherits Rectangle {
             color: Theme.text-3;
         }
 
-        Flickable {
+        Rectangle {
             vertical-stretch: 1;
-            content-height: 430px;
+
+            Flickable {
+                width: parent.width;
+                height: parent.height;
+                content-width: self.width;   // разрывает цикл min-width (дефолт смотрит на детей)
+            content-height: 60px
+                + genres-grid.height + 46px
+                + moods-grid.height + 24px;
 
             VerticalLayout {
                 alignment: start;
                 spacing: 18px;
 
                 VerticalLayout {
-                    spacing: 10px;
+                    spacing: 12px;
                     Text {
                         text: "ЖАНРЫ";
                         font-size: 12px;
@@ -41,34 +147,21 @@ export component RadioPage inherits Rectangle {
                         color: Theme.text-3;
                         letter-spacing: 0.8px;
                     }
-                    HorizontalLayout {
-                        spacing: 10px;
-                        alignment: start;
-                        Chip { label: "Рок"; clicked => { root.start-station("genre:rock", "Рок"); } }
-                        Chip { label: "Поп"; clicked => { root.start-station("genre:pop", "Поп"); } }
-                        Chip { label: "Хип-хоп"; clicked => { root.start-station("genre:hiphop", "Хип-хоп"); } }
-                        Chip { label: "Электроника"; clicked => { root.start-station("genre:electronic", "Электроника"); } }
-                    }
-                    HorizontalLayout {
-                        spacing: 10px;
-                        alignment: start;
-                        Chip { label: "Джаз"; clicked => { root.start-station("genre:jazz", "Джаз"); } }
-                        Chip { label: "Классика"; clicked => { root.start-station("genre:classical", "Классика"); } }
-                        Chip { label: "Метал"; clicked => { root.start-station("genre:metal", "Метал"); } }
-                        Chip { label: "Инди"; clicked => { root.start-station("genre:indie", "Инди"); } }
-                    }
-                    HorizontalLayout {
-                        spacing: 10px;
-                        alignment: start;
-                        Chip { label: "Шансон"; clicked => { root.start-station("genre:chanson", "Шансон"); } }
-                        Chip { label: "Рэп"; clicked => { root.start-station("genre:rap", "Рэп"); } }
-                        Chip { label: "Регги"; clicked => { root.start-station("genre:reggae", "Регги"); } }
-                        Chip { label: "Блюз"; clicked => { root.start-station("genre:blues", "Блюз"); } }
+                    genres-grid := TileFlow {
+                        count: 8;
+                        StationCard { index: 0; cols: genres-grid.cols; tile-size: genres-grid.tile-w; label: "Рок";       variant: 3; glyph: Icons.radio; clicked => { root.start-station("genre:rock", "Рок"); } }
+                        StationCard { index: 1; cols: genres-grid.cols; tile-size: genres-grid.tile-w; label: "Поп";       variant: 5; glyph: Icons.note;  clicked => { root.start-station("genre:pop", "Поп"); } }
+                        StationCard { index: 2; cols: genres-grid.cols; tile-size: genres-grid.tile-w; label: "Хип-хоп";   variant: 4; glyph: Icons.note;  clicked => { root.start-station("genre:hiphop", "Хип-хоп"); } }
+                        StationCard { index: 3; cols: genres-grid.cols; tile-size: genres-grid.tile-w; label: "Электроника"; variant: 2; glyph: Icons.wave; clicked => { root.start-station("genre:electronic", "Электроника"); } }
+                        StationCard { index: 4; cols: genres-grid.cols; tile-size: genres-grid.tile-w; label: "Джаз";      variant: 8; glyph: Icons.note;  clicked => { root.start-station("genre:jazz", "Джаз"); } }
+                        StationCard { index: 5; cols: genres-grid.cols; tile-size: genres-grid.tile-w; label: "Классика";  variant: 6; glyph: Icons.note;  clicked => { root.start-station("genre:classical", "Классика"); } }
+                        StationCard { index: 6; cols: genres-grid.cols; tile-size: genres-grid.tile-w; label: "Метал";     variant: 1; glyph: Icons.radio; clicked => { root.start-station("genre:metal", "Метал"); } }
+                        StationCard { index: 7; cols: genres-grid.cols; tile-size: genres-grid.tile-w; label: "Инди";      variant: 7; glyph: Icons.note;  clicked => { root.start-station("genre:indie", "Инди"); } }
                     }
                 }
 
                 VerticalLayout {
-                    spacing: 10px;
+                    spacing: 12px;
                     Text {
                         text: "НАСТРОЕНИЕ";
                         font-size: 12px;
@@ -76,24 +169,20 @@ export component RadioPage inherits Rectangle {
                         color: Theme.text-3;
                         letter-spacing: 0.8px;
                     }
-                    HorizontalLayout {
-                        spacing: 10px;
-                        alignment: start;
-                        Chip { label: "Бодрое"; clicked => { root.start-station("activity:work-morning", "Утро и работа"); } }
-                        Chip { label: "Для фокуса"; clicked => { root.start-station("activity:to-study", "Для учёбы"); } }
-                        Chip { label: "Для дороги"; clicked => { root.start-station("activity:to-drive", "В дороге"); } }
-                        Chip { label: "Для сна"; clicked => { root.start-station("activity:to-sleep", "Перед сном"); } }
-                    }
-                    HorizontalLayout {
-                        spacing: 10px;
-                        alignment: start;
-                        Chip { label: "Тренировка"; clicked => { root.start-station("activity:sport", "Спорт"); } }
-                        Chip { label: "Вечеринка"; clicked => { root.start-station("activity:party", "Вечеринка"); } }
+                    moods-grid := TileFlow {
+                        count: 6;
+                        StationCard { index: 0; cols: moods-grid.cols; tile-size: moods-grid.tile-w; label: "Бодрое";     variant: 8; glyph: Icons.wave;  clicked => { root.start-station("activity:work-morning", "Утро и работа"); } }
+                        StationCard { index: 1; cols: moods-grid.cols; tile-size: moods-grid.tile-w; label: "Для фокуса"; variant: 2; glyph: Icons.wave;  clicked => { root.start-station("activity:to-study", "Для учёбы"); } }
+                        StationCard { index: 2; cols: moods-grid.cols; tile-size: moods-grid.tile-w; label: "Для дороги"; variant: 6; glyph: Icons.radio; clicked => { root.start-station("activity:to-drive", "В дороге"); } }
+                        StationCard { index: 3; cols: moods-grid.cols; tile-size: moods-grid.tile-w; label: "Для сна";    variant: 1; glyph: Icons.wave;  clicked => { root.start-station("activity:to-sleep", "Перед сном"); } }
+                        StationCard { index: 4; cols: moods-grid.cols; tile-size: moods-grid.tile-w; label: "Тренировка"; variant: 5; glyph: Icons.radio; clicked => { root.start-station("activity:sport", "Спорт"); } }
+                        StationCard { index: 5; cols: moods-grid.cols; tile-size: moods-grid.tile-w; label: "Вечеринка";  variant: 4; glyph: Icons.note;  clicked => { root.start-station("activity:party", "Вечеринка"); } }
                     }
                 }
 
                 Rectangle { height: 8px; }
             }
+                    }
         }
     }
 }

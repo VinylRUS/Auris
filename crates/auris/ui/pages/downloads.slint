@@ -45,8 +45,13 @@ export component DownloadsPage inherits Rectangle {
             }
         }
 
-        Flickable {
+        Rectangle {
             vertical-stretch: 1;
+
+            Flickable {
+                width: parent.width;
+                height: parent.height;
+                content-width: self.width;   // разрывает цикл min-width (дефолт смотрит на детей)
             content-height: 40px + 52px * root.items.length;
 
             VerticalLayout {
@@ -96,6 +101,7 @@ export component DownloadsPage inherits Rectangle {
                     }
                 }
             }
+                    }
         }
     }
 }

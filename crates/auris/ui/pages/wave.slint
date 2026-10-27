@@ -32,8 +32,13 @@ export component WavePage inherits Rectangle {
         padding-top: 18px;
         spacing: 6px;
 
-        Flickable {
+        Rectangle {
             vertical-stretch: 1;
+
+            Flickable {
+                width: parent.width;
+                height: parent.height;
+                content-width: self.width;   // разрывает цикл min-width (дефолт смотрит на детей)
             content-height: 480px + 52px * root.upcoming.length;
             VerticalLayout {
                 alignment: start;
@@ -47,31 +52,31 @@ export component WavePage inherits Rectangle {
 
                     Path {
                         property <length> dx: 0px;
-                        init => { dx = 40px; }
-                        x: parent.width - 460px + self.dx;
+                        init => { dx = 30px; }
+                        x: parent.width - 350px + self.dx;
                         y: 20px;
-                        width: 440px; height: 180px;
-                        viewbox-width: 440; viewbox-height: 180;
+                        width: 320px; height: 180px;
+                        viewbox-width: 320; viewbox-height: 180;
                         stroke: Theme.accent;
                         stroke-width: 2px;
                         fill: transparent;
-                        opacity: 0.55;
+                        opacity: 0.45;
                         animate dx { duration: 6000ms; iteration-count: -1; direction: alternate; easing: ease-in-out; }
-                        commands: "M 0 100 Q 55 20 110 100 T 220 100 T 330 100 T 440 100";
+                        commands: "M 0 100 Q 40 20 80 100 T 160 100 T 240 100 T 320 100";
                     }
                     Path {
-                        property <length> dx: 40px;
+                        property <length> dx: 30px;
                         init => { dx = 0px; }
-                        x: parent.width - 460px + self.dx;
+                        x: parent.width - 350px + self.dx;
                         y: 20px;
-                        width: 440px; height: 180px;
-                        viewbox-width: 440; viewbox-height: 180;
+                        width: 320px; height: 180px;
+                        viewbox-width: 320; viewbox-height: 180;
                         stroke: Theme.accent;
                         stroke-width: 1.6px;
                         fill: transparent;
-                        opacity: 0.3;
+                        opacity: 0.25;
                         animate dx { duration: 7300ms; iteration-count: -1; direction: alternate; easing: ease-in-out; }
-                        commands: "M 0 130 Q 55 70 110 130 T 220 130 T 330 130 T 440 130";
+                        commands: "M 0 130 Q 40 70 80 130 T 160 130 T 240 130 T 320 130";
                     }
 
                     HorizontalLayout {
@@ -161,10 +166,10 @@ export component WavePage inherits Rectangle {
                                     size: 44px;
                                     clicked => { root.toggle-play(); }
                                 }
-                                if root.active: ActionButton {
-                                    label: "Следующий";
-                                    icon: Icons.next;
-                                    height: 38px;
+                                if root.active: IconButton {
+                                    source: Icons.next;
+                                    icon-size: 20px;
+                                    size: 38px;
                                     y: 3px;
                                     clicked => { root.next(); }
                                 }
@@ -200,6 +205,7 @@ export component WavePage inherits Rectangle {
                 }
                 Rectangle { height: 12px; }
             }
+                    }
         }
     }
 }

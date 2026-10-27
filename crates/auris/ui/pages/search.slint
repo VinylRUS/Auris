@@ -76,8 +76,13 @@ export component SearchPage inherits Rectangle {
             }
         }
 
-        if root.has-results: Flickable {
+        if root.has-results: Rectangle {
             vertical-stretch: 1;
+
+            Flickable {
+                width: parent.width;
+                height: parent.height;
+                content-width: self.width;   // разрывает цикл min-width (дефолт смотрит на детей)
             content-height: 80px + 52px * root.tracks.length + 260px;
 
             VerticalLayout {
@@ -201,6 +206,7 @@ export component SearchPage inherits Rectangle {
                     horizontal-alignment: center;
                 }
             }
+                    }
         }
     }
 }

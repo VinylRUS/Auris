@@ -206,8 +206,13 @@ export component SettingsPage inherits Rectangle {
         padding-top: 14px;
         padding-right: 24px;
 
-        Flickable {
+        Rectangle {
             vertical-stretch: 1;
+
+            Flickable {
+                width: parent.width;
+                height: parent.height;
+                content-width: self.width;   // разрывает цикл min-width (дефолт смотрит на детей)
             content-height: 1140px;
 
             VerticalLayout {
@@ -517,6 +522,7 @@ export component SettingsPage inherits Rectangle {
 
                 Rectangle { height: 12px; }
             }
+                    }
         }
     }
 }

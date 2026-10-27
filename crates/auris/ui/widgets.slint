@@ -2,6 +2,7 @@
 // Все иконки — векторные SVG (icons.slint), тонируются colorize.
 import { Theme } from "theme.slint";
 import { Icons, Icon, EqBars } from "icons.slint";
+import { TileItem } from "structs.slint";
 
 // ---------- Градиентная заглушка обложки ----------
 export component GradientCover inherits Rectangle {
@@ -410,7 +411,7 @@ export component TrackRow inherits Rectangle {
         // Название + исполнитель
         VerticalLayout {
             alignment: center;
-            horizontal-stretch: 10;
+            horizontal-stretch: 1;
             Text {
                 text: root.title;
                 font-size: 13.5px;
@@ -426,14 +427,14 @@ export component TrackRow inherits Rectangle {
             }
         }
 
-        // Альбом
+        // Альбом (фиксированная доля ширины строки — как в Spotify)
         Text {
             text: root.album;
             font-size: 13px;
             color: Theme.text-3;
             overflow: elide;
             vertical-alignment: center;
-            horizontal-stretch: 8;
+            width: parent.width * 0.22;
         }
 
         // Длительность
@@ -548,5 +549,45 @@ export component SearchField inherits Rectangle {
             y: (parent.height - 24px) / 2;
             clicked => { root.text = ""; }
         }
+    }
+}
+
+// ---------- Сетка плиток с переносом строк и растяжкой ----------
+// Плитки фиксированного целевого размера раскладываются по строкам
+// (слева направо, сверху вниз) и растягиваются, чтобы заполнить
+// ширину ровно. Высота сетки — out-свойство для Flickable.
+export component TileGrid inherits Rectangle {
+    in property <[TileItem]> items;
+    // Не ограничиваем родительские layout-ы: без явных констрейнтов
+    // Rectangle с position-детьми отдаёт max-width по правому краю
+    // последней карточки, и Flickable сжимается до preferred контента.
+    min-width: 0px;
+    max-width: 16777215px;
+    preferred-width: 0px;
+    in property <length> target-size: 172px;   // желаемая ширина плитки
+    in property <length> gap: 18px;
+    in property <int> min-cols: 2;
+    callback tile-clicked(TileItem);
+
+    // Сколько колонок влезает (не меньше min-cols).
+    property <int> cols: max(min-cols,
+        Math.floor((self.width + gap) / (target-size + gap)));
+    // Фактическая ширина плитки: растягиваем колонки на всю ширину.
+    property <length> tile-w: (self.width - gap * (cols - 1)) / cols;
+    property <length> tile-h: tile-w + 46px;
+    property <int> rows: items.length == 0 ? 0
+        : Math.ceil(items.length / cols);
+
+    height: rows == 0 ? 0px : rows * tile-h + (rows - 1) * gap;
+
+    for item[i] in root.items: TileCard {
+        x: Math.mod(i, cols) * (root.tile-w + root.gap);
+        y: Math.floor(i / cols) * (root.tile-h + root.gap);
+        tile-size: root.tile-w;
+        title: item.title;
+        subtitle: item.subtitle;
+        cover-image: item.cover;
+        cover-variant: item.cover-variant;
+        clicked => { root.tile-clicked(item); }
     }
 }
