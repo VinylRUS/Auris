@@ -227,27 +227,35 @@ impl Player {
 }
 
 /// Запускает поток плеера; возвращает хэндл и приёмник событий.
+///
+/// Важно: `OutputStream` (cpal) на macOS не `Send`, поэтому аудио-поток
+/// создаётся **внутри** потока плеера, а не переносится в него.
+/// При недоступности аудиоустройства поток плеера завершается с ошибкой
+/// в лог — хэндл остаётся валидным, команды игнорируются.
 pub fn spawn() -> anyhow::Result<(PlayerHandle, Receiver<PlayerEvent>)> {
-    let stream = OutputStreamBuilder::open_default_stream()
-        .map_err(|e| anyhow::anyhow!("no audio output device: {e}"))?;
-    let mixer = stream.mixer().clone();
-
     let (cmd_tx, cmd_rx) = std::sync::mpsc::channel::<Cmd>();
     let (ev_tx, ev_rx) = std::sync::mpsc::channel::<PlayerEvent>();
     let state = Arc::new(Mutex::new(InnerState::default()));
 
-    let player = Player {
-        _stream: stream,
-        mixer,
-        sink: None,
-        state: Arc::clone(&state),
-        events: ev_tx,
-    };
-
+    let thread_state = Arc::clone(&state);
     std::thread::Builder::new()
         .name("auris-player".into())
         .spawn(move || {
-            let mut player = player;
+            let stream = match OutputStreamBuilder::open_default_stream() {
+                Ok(s) => s,
+                Err(e) => {
+                    log::error!("аудиоустройство недоступна: {e}");
+                    return;
+                }
+            };
+            let mixer = stream.mixer().clone();
+            let mut player = Player {
+                _stream: stream,
+                mixer,
+                sink: None,
+                state: thread_state,
+                events: ev_tx,
+            };
             loop {
                 match cmd_rx.recv_timeout(Duration::from_millis(120)) {
                     Ok(cmd) => player.handle_cmd(cmd),

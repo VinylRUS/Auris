@@ -31,13 +31,7 @@ fn main() -> anyhow::Result<()> {
         token.clone().unwrap_or_default(),
     )));
 
-    let (player, player_events) = match auris_player::spawn() {
-        Ok(pair) => pair,
-        Err(e) => {
-            log::error!("аудиоустройство недоступно: {e}");
-            return Err(e);
-        }
-    };
+    let (player, player_events) = auris_player::spawn()?;
 
     let ui = MainWindow::new()?;
 
