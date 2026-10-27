@@ -256,6 +256,10 @@ pub(crate) fn init_player(app: &Arc<App>, ui: &MainWindow) {
             app.publish_media();
         });
     }
+    {
+        let app = Arc::clone(app);
+        ui.on_toggle_lyrics(move || app.toggle_lyrics_panel());
+    }
 }
 
 pub(crate) fn init_queue(app: &Arc<App>, ui: &MainWindow) {

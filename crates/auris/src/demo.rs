@@ -192,6 +192,12 @@ pub fn fill(ui: &MainWindow) {
     ui.set_library_albums(model(albums));
     ui.set_library_artists(model(artists));
 
+    // ---- Лирика ----
+    ui.set_lyrics_state(2);
+    ui.set_lyrics_text(
+        "Демо-строка первой строфы\nвторая строка звучит в тишине\n\nПрипев:\nмы слушаем музыку\nвесь день напролёт\n\nФинальный куплет\nи тихий аккорд".into(),
+    );
+
     // ---- Открытый плейлист (библиотека) ----
     ui.set_playlist_open(false);
     ui.set_playlist_title("Дорога".into());

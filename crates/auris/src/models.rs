@@ -11,7 +11,28 @@ use std::sync::{Arc, Mutex};
 use auris_api::{Album, Artist, Playlist, Track};
 use slint::{Image, SharedString};
 
-use crate::{BestItem, TileItem, TrackItem};
+use crate::{BestItem, MainWindow, TileItem, TrackItem};
+
+/// Помощник: применить закешированный текст песни к UI
+/// (`None` = текста нет).
+pub trait LyricsUi {
+    fn set_cached_lyrics(&self, text: Option<String>);
+}
+
+impl LyricsUi for MainWindow {
+    fn set_cached_lyrics(&self, text: Option<String>) {
+        match text {
+            Some(t) => {
+                self.set_lyrics_state(2);
+                self.set_lyrics_text(SharedString::from(t));
+            }
+            None => {
+                self.set_lyrics_state(3);
+                self.set_lyrics_text("".into());
+            }
+        }
+    }
+}
 
 /// Вариант градиентной заглушки (стабильный по id трека).
 pub fn cover_variant(id: i64) -> i32 {
@@ -50,6 +71,8 @@ pub struct UiCache {
     pub playlist_tracks: Vec<Track>,
     /// Список загрузок.
     pub downloads: Vec<Track>,
+    /// Тексты песен: track_id → текст (`None` = текста нет, отрицательный кеш).
+    pub lyrics: HashMap<i64, Option<String>>,
 }
 
 /// Разделяемый кеш.

@@ -16,6 +16,7 @@ export component PlayerBar inherits Rectangle {
     in property <bool> shuffle: false;
     in property <int> repeat: 0;        // 0 выкл, 1 все, 2 один
     in property <bool> queue-open: false;
+    in property <bool> lyrics-open: false;
 
     callback toggle-play();
     callback next();
@@ -26,6 +27,7 @@ export component PlayerBar inherits Rectangle {
     callback toggle-shuffle();
     callback cycle-repeat();
     callback toggle-queue();
+    callback toggle-lyrics();
 
     // состояние mute (чисто UI: громкость 0 ↔ сохранённое значение)
     property <float> pre-mute: 0.7;
@@ -142,11 +144,18 @@ export component PlayerBar inherits Rectangle {
             }
         }
 
-        // ---- Правая треть: очередь + громкость ----
+        // ---- Правая треть: лирика + очередь + громкость ----
         HorizontalLayout {
             horizontal-stretch: 10;
             alignment: end;
             spacing: 8px;
+            IconButton {
+                source: Icons.lyrics;
+                on: root.lyrics-open;
+                icon-size: 17px;
+                y: (parent.height - 32px) / 2;
+                clicked => { root.toggle-lyrics(); }
+            }
             IconButton {
                 source: Icons.queue;
                 on: root.queue-open;
