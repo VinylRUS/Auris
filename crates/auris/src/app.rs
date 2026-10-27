@@ -179,6 +179,7 @@ impl App {
                 Ok(()) => {
                     app.ui_inv(|ui| ui.set_logged_in(true));
                     app.load_home().await;
+                    app.load_radio().await;
                 }
                 Err(e) => {
                     log::error!("account: {e:#}");
@@ -240,6 +241,46 @@ impl App {
         if let Err(e) = self.load_home_inner().await {
             log::error!("home: {e:#}");
         }
+    }
+
+    /// Радио: станции из дашборда ротатора (`GET /rotor/stations/dashboard`).
+    pub async fn load_radio(self: &Arc<Self>) {
+        let client = self.api.lock().expect("api").clone();
+        let dash = match client.rotor_stations_dashboard().await {
+            Ok(d) => d,
+            Err(e) => {
+                log::warn!("radio dashboard: {e}");
+                return;
+            }
+        };
+        let mut seen = std::collections::HashSet::new();
+        let items: Vec<(String, String)> = dash
+            .dashboard
+            .stations
+            .iter()
+            .filter_map(|s| {
+                let st = s.station.as_ref()?;
+                (!st.name.is_empty()).then_some((st.name.clone(), s.id.seed()))
+            })
+            .filter(|(name, seed)| name != "" && seen.insert(seed.clone()))
+            .collect();
+        if items.is_empty() {
+            return;
+        }
+        self.ui_inv(move |ui| {
+            let model: Vec<crate::StationItem> = items
+                .iter()
+                .enumerate()
+                .map(|(i, (name, seed))| crate::StationItem {
+                    label: models::s(name.clone()),
+                    seed: models::s(seed.clone()),
+                    variant: (i % 8) as i32 + 1,
+                })
+                .collect();
+            ui.set_radio_stations(slint::ModelRc::new(std::rc::Rc::new(
+                slint::VecModel::from(model),
+            )));
+        });
     }
 
     async fn load_home_inner(self: &Arc<Self>) -> anyhow::Result<()> {

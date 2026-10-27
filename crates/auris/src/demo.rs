@@ -5,7 +5,7 @@ use std::rc::Rc;
 
 use slint::{Image, ModelRc, SharedString, VecModel};
 
-use crate::{MainWindow, TileItem, TrackItem};
+use crate::{MainWindow, StationItem, TileItem, TrackItem};
 
 /// Заполнить окно демо-данными (вызывается вместо `bootstrap`).
 pub fn fill(ui: &MainWindow) {
@@ -198,6 +198,19 @@ pub fn fill(ui: &MainWindow) {
         "Демо-строка первой строфы\nвторая строка звучит в тишине\n\nПрипев:\nмы слушаем музыку\nвесь день напролёт\n\nФинальный куплет\nи тихий аккорд".into(),
     );
 
+    // ---- Радио: станции дашборда ----
+    let stations: Vec<StationItem> = vec![
+        station("Моя волна", "user:onyourwave", 1),
+        station("Клик-клак", "playlist:clickclamp", 2),
+        station("Плейлист дня", "playlist:oftheday", 3),
+        station("Дежавю", "playlist:dejavu", 4),
+        station("Секретный", "playlist:secret", 5),
+        station("Кинопоток", "playlist:kinopoisk", 6),
+        station("Похожие на Kino", "artist:kino:tracks", 7),
+        station("Премьера", "playlist:premiere", 8),
+    ];
+    ui.set_radio_stations(model(stations));
+
     // ---- Открытый плейлист (библиотека) ----
     ui.set_playlist_open(false);
     ui.set_playlist_title("Дорога".into());
@@ -207,6 +220,14 @@ pub fn fill(ui: &MainWindow) {
 
 fn model<T: Clone + 'static>(v: Vec<T>) -> ModelRc<T> {
     ModelRc::new(Rc::new(VecModel::from(v)))
+}
+
+fn station(label: &str, seed: &str, variant: i32) -> StationItem {
+    StationItem {
+        label: SharedString::from(label),
+        seed: SharedString::from(seed),
+        variant,
+    }
 }
 
 #[allow(clippy::too_many_arguments)]
