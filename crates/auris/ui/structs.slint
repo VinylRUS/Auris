@@ -35,3 +35,9 @@ export struct BestItem {
     owner-uid: int,
     kind: int,
 }
+
+export struct StationItem {
+    label: string,            // название станции
+    seed: string,             // сид для rotor/session/new, например "genre:rock"
+    variant: int,             // 1..8 — градиент карточки
+}

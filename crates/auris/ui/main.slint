@@ -22,7 +22,7 @@ import { WavePage } from "pages/wave.slint";
 import { DownloadsPage } from "pages/downloads.slint";
 import { RadioPage } from "pages/radio.slint";
 import { SettingsPage } from "pages/settings.slint";
-import { TileItem, TrackItem, BestItem } from "structs.slint";
+import { TileItem, TrackItem, BestItem, StationItem } from "structs.slint";
 
 // Повторно экспортируем глобал темы для доступа из Rust.
 export { Theme } from "theme.slint";
@@ -91,6 +91,9 @@ export component MainWindow inherits Window {
     // ---- Волна ----
     in-out property <bool> wave-active: false;
     in-out property <[TrackItem]> wave-upcoming;
+
+    // ---- Радио ----
+    in-out property <[StationItem]> radio-stations;
 
     // ---- Плеер ----
     in-out property <string> cur-title: "";
@@ -346,6 +349,7 @@ export component MainWindow inherits Window {
                     }
                     if root.page == 6: RadioPage {
                         width: 100%; height: 100%;
+                        stations: root.radio-stations;
                         start-station(seed, name) => { root.radio-start(seed, name); }
                     }
                 }

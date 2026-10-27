@@ -2,6 +2,7 @@
 // Карточки-станции с градиентами — по мотивам Яндекс.Музыки.
 import { Theme } from "../theme.slint";
 import { Icons, Icon } from "../icons.slint";
+import { StationItem } from "../structs.slint";
 
 // Поток карточек с переносом по строкам и растяжкой на всю ширину.
 // Карточки — прямые дети; каждая знает свой индекс в потоке.
@@ -102,7 +103,10 @@ component StationCard inherits Rectangle {
 }
 
 export component RadioPage inherits Rectangle {
+    in property <[StationItem]> stations;
     callback start-station(string, string);   // (seed, название)
+    // Высота динамической сетки станций (для Flickable).
+    property <length> stations-grid-h: 0px;
 
     VerticalLayout {
         padding: 18px;
@@ -131,12 +135,38 @@ export component RadioPage inherits Rectangle {
                 height: parent.height;
                 content-width: self.width;   // разрывает цикл min-width (дефолт смотрит на детей)
             content-height: 60px
+                + (root.stations-grid-h > 0px ? 62px + root.stations-grid-h : 0px)
                 + genres-grid.height + 46px
                 + moods-grid.height + 24px;
 
             VerticalLayout {
                 alignment: start;
                 spacing: 18px;
+
+                // ---- Станции из дашборда ротатора ----
+                if root.stations.length > 0: VerticalLayout {
+                    spacing: 12px;
+                    Text {
+                        text: "СТАНЦИИ";
+                        font-size: 12px;
+                        font-weight: 700;
+                        color: Theme.text-3;
+                        letter-spacing: 0.8px;
+                    }
+                    stations-grid := TileFlow {
+                        count: root.stations.length;
+                        for st[i] in root.stations: StationCard {
+                            index: i;
+                            cols: stations-grid.cols;
+                            tile-size: stations-grid.tile-w;
+                            label: st.label;
+                            variant: st.variant;
+                            glyph: Icons.radio;
+                            clicked => { root.start-station(st.seed, st.label); }
+                        }
+                        changed height => { root.stations-grid-h = self.height; }
+                    }
+                }
 
                 VerticalLayout {
                     spacing: 12px;
