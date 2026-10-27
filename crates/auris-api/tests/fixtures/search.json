@@ -1,0 +1,80 @@
+{
+  "tracks": {
+    "total": 4242,
+    "perPage": 20,
+    "order": 0,
+    "results": [
+      {
+        "id": 5275115,
+        "title": "Группа крови",
+        "available": true,
+        "durationMs": 285000,
+        "coverUri": "avatars.yandex.net/get-music-content/2a000001/xxx/%%",
+        "artists": [ { "id": 516, "name": "Кино", "various": false, "composer": false } ],
+        "albums": [ { "id": 5275114, "title": "Группа крови", "trackCount": 10, "artists": [ { "id": 516, "name": "Кино" } ] } ]
+      },
+      {
+        "id": 116376,
+        "title": "Судно",
+        "available": true,
+        "durationMs": 238000,
+        "coverUri": "avatars.yandex.net/get-music-content/2a000001/zzz/%%",
+        "artists": [ { "id": 264421, "name": "Молчат Дома", "various": false, "composer": false } ],
+        "albums": [ { "id": 49850, "title": "Этажи", "trackCount": 11, "artists": [ { "id": 264421, "name": "Молчат Дома" } ] } ]
+      }
+    ]
+  },
+  "albums": {
+    "total": 178,
+    "results": [
+      {
+        "id": 5275114,
+        "title": "Группа крови",
+        "year": 1988,
+        "trackCount": 10,
+        "available": true,
+        "coverUri": "avatars.yandex.net/get-music-content/2a000001/yyy/%%",
+        "artists": [ { "id": 516, "name": "Кино" } ]
+      }
+    ]
+  },
+  "artists": {
+    "total": 42,
+    "results": [
+      {
+        "id": 516,
+        "name": "Кино",
+        "cover": { "uri": "avatars.yandex.net/get-music-content/0f2/xxx/%%" },
+        "various": false,
+        "composer": false
+      }
+    ]
+  },
+  "playlists": {
+    "total": 12,
+    "results": [
+      {
+        "kind": 1003,
+        "title": "Кино — все треки",
+        "trackCount": 96,
+        "cover": { "uri": "avatars.yandex.net/get-music-content/1a2/qqq/%%", "type": "pic" },
+        "owner": { "uid": 555, "login": "yamusic-digest", "name": "Яндекс Музыка" },
+        "revision": 7
+      }
+    ]
+  },
+  "best": {
+    "type": "track",
+    "result": {
+      "id": 5275115,
+      "title": "Группа крови",
+      "available": true,
+      "durationMs": 285000,
+      "coverUri": "avatars.yandex.net/get-music-content/2a000001/xxx/%%",
+      "artists": [ { "id": 516, "name": "Кино", "various": false, "composer": false } ],
+      "albums": [ { "id": 5275114, "title": "Группа крови", "trackCount": 10 } ]
+    },
+    "text": "Группа крови"
+  },
+  "misspellCorrected": false
+}

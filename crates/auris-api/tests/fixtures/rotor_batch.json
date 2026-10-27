@@ -1,0 +1,21 @@
+{
+  "batchId": "batch-2",
+  "pumpkin": false,
+  "sequence": [
+    {
+      "type": "track",
+      "track": {
+        "id": 5275115,
+        "title": "Группа крови",
+        "available": true,
+        "durationMs": 285000,
+        "artists": [ { "id": 516, "name": "Кино", "various": false, "composer": false } ],
+        "albums": [ { "id": 5275114, "title": "Группа крови" } ]
+      },
+      "liked": false,
+      "trackId": "5275115:5275114"
+    }
+  ],
+  "terminated": false,
+  "unknownSession": false
+}

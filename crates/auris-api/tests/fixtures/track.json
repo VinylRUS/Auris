@@ -1,0 +1,46 @@
+{
+  "id": 5275115,
+  "realId": 5275115,
+  "title": "Группа крови",
+  "major": { "id": 12, "name": "Яндекс Музыка" },
+  "available": true,
+  "availableForPremiumUsers": true,
+  "availableFullWithoutSubscription": false,
+  "durationMs": 285000,
+  "storageDir": "52751",
+  "fileSize": 6842721,
+  "normalization": {
+    "gain": -3.13,
+    "peak": 32496
+  },
+  "previewDurationMs": 30000,
+  "coverUri": "avatars.yandex.net/get-music-content/2a000001/xxx/%%",
+  "artists": [
+    {
+      "id": 516,
+      "name": "Кино",
+      "cover": {
+        "uri": "avatars.yandex.net/get-music-content/0f2/xxx/%%"
+      },
+      "various": false,
+      "composer": false
+    }
+  ],
+  "albums": [
+    {
+      "id": 5275114,
+      "title": "Группа крови",
+      "year": 1988,
+      "releaseDate": "1988-01-01T00:00:00+03:00",
+      "trackCount": 10,
+      "available": true,
+      "availableForPremiumUsers": true,
+      "coverUri": "avatars.yandex.net/get-music-content/2a000001/yyy/%%",
+      "artists": [
+        { "id": 516, "name": "Кино", "various": false, "composer": false }
+      ],
+      "labels": [ { "id": 12, "name": "Яндекс Музыка" } ]
+    }
+  ],
+  "trackSource": "library"
+}

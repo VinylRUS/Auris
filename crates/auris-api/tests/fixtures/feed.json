@@ -1,0 +1,45 @@
+{
+  "generatedPlaylists": [
+    {
+      "type": "playlistOfTheDay",
+      "ready": true,
+      "notify": false,
+      "playlist": {
+        "uid": 123456789,
+        "kind": 3,
+        "title": "Плейлист дня",
+        "trackCount": 60,
+        "cover": { "uri": "avatars.yandex.net/get-music-content/day/%%", "type": "pic" },
+        "owner": { "uid": 123456789, "login": "alexander.example", "name": "Alexander" },
+        "revision": 11
+      }
+    },
+    {
+      "type": "recentTracks",
+      "ready": true,
+      "playlist": {
+        "uid": 123456789,
+        "kind": 6,
+        "title": "Премьера",
+        "trackCount": 30,
+        "cover": { "uri": "avatars.yandex.net/get-music-content/deja/%%", "type": "pic" },
+        "owner": { "uid": 123456789, "login": "alexander.example", "name": "Alexander" },
+        "revision": 3
+      }
+    },
+    {
+      "type": "newMix",
+      "ready": true,
+      "playlist": {
+        "uid": 123456789,
+        "kind": 15,
+        "title": "Микс",
+        "trackCount": 45,
+        "cover": { "uri": "avatars.yandex.net/get-music-content/mix/%%", "type": "pic" },
+        "owner": { "uid": 123456789, "login": "alexander.example", "name": "Alexander" },
+        "revision": 5
+      }
+    }
+  ],
+  "headlines": []
+}

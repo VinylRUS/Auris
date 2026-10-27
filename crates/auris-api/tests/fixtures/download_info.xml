@@ -1,0 +1,12 @@
+<download-info>
+  <schema>http</schema>
+  <host>storage.mds.yandex.net</host>
+  <path>/get-music-content/03/ae/file.mp3</path>
+  <ts>6702839</ts>
+  <region>225</region>
+  <s>53ba21a081a26be5cd9dc0fd22b171f6</s>
+  <mime-type>audio/mpeg</mime-type>
+  <file-size>6842721</file-size>
+  <duration>285265</duration>
+  <bitrate>192</bitrate>
+</download-info>

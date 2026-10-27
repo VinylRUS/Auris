@@ -1,0 +1,33 @@
+{
+  "account": {
+    "uid": 123456789,
+    "login": "alexander.example@yandex.ru",
+    "fullName": "Александр В.",
+    "displayName": "Александр",
+    "region": 225,
+    "hostedUser": false
+  },
+  "permissions": {
+    "until": "4102444800",
+    "values": [ "library", "settings" ],
+    "default": [
+      { "until": 4102444800, "value": "library" }
+    ]
+  },
+  "subscription": {
+    "canStartTrial": false,
+    "until": "4102444800",
+    "mcdonalds": false,
+    "renewable": true,
+    "active": true
+  },
+  "plus": {
+    "hasPlus": true,
+    "isFirstPlus": false
+  },
+  "defaultEmail": "alexander.example@yandex.ru",
+  "skipsPerHour": 20,
+  "stationExists": true,
+  "premiumRegion": 225,
+  "userhash": "f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2"
+}

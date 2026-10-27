@@ -1,0 +1,22 @@
+[
+  {
+    "kind": 3,
+    "revision": 42,
+    "uid": 123456789,
+    "owner": { "uid": 123456789, "login": "alexander.example", "name": "Alexander" },
+    "title": "Мне нравится",
+    "trackCount": 1248,
+    "cover": { "uri": "avatars.yandex.net/get-music-content/likes/%%", "type": "pic" },
+    "isPublic": true
+  },
+  {
+    "kind": 1001,
+    "revision": 7,
+    "uid": 123456789,
+    "owner": { "uid": 123456789, "login": "alexander.example", "name": "Alexander" },
+    "title": "В дорогу",
+    "trackCount": 86,
+    "cover": { "uri": "avatars.yandex.net/get-music-content/road/%%", "type": "pic" },
+    "isPublic": false
+  }
+]

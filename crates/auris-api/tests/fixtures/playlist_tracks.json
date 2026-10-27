@@ -1,0 +1,33 @@
+{
+  "kind": 1001,
+  "revision": 7,
+  "uid": 123456789,
+  "owner": { "uid": 123456789, "login": "alexander.example", "name": "Alexander" },
+  "title": "В дорогу",
+  "trackCount": 2,
+  "cover": { "uri": "avatars.yandex.net/get-music-content/road/%%", "type": "pic" },
+  "tracks": [
+    {
+      "id": 1,
+      "track": {
+        "id": 5275115,
+        "title": "Группа крови",
+        "available": true,
+        "durationMs": 285000,
+        "artists": [ { "id": 516, "name": "Кино", "various": false, "composer": false } ],
+        "albums": [ { "id": 5275114, "title": "Группа крови" } ]
+      }
+    },
+    {
+      "id": 2,
+      "track": {
+        "id": 116376,
+        "title": "Судно",
+        "available": true,
+        "durationMs": 238000,
+        "artists": [ { "id": 264421, "name": "Молчат Дома", "various": false, "composer": false } ],
+        "albums": [ { "id": 49850, "title": "Этажи" } ]
+      }
+    }
+  ]
+}

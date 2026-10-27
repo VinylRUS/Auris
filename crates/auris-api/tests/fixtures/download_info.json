@@ -1,0 +1,30 @@
+[
+  {
+    "codec": "aac",
+    "bitrateInKbps": 64,
+    "gain": true,
+    "preview": false,
+    "downloadInfoUrl": "",
+    "direct": false,
+    "url": "https://storage.mds.yandex.net/audio-headers/03/get-audio-info",
+    "supplier": "default"
+  },
+  {
+    "codec": "mp3",
+    "bitrateInKbps": 192,
+    "gain": true,
+    "preview": false,
+    "direct": false,
+    "url": "https://storage.mds.yandex.net/audio-headers/03/get-audio-info",
+    "supplier": "default"
+  },
+  {
+    "codec": "mp3",
+    "bitrateInKbps": 320,
+    "gain": true,
+    "preview": false,
+    "direct": true,
+    "url": "https://storage.mds.yandex.net/audio-headers/03/get-audio-info",
+    "supplier": "default"
+  }
+]

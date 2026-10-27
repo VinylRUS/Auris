@@ -1,0 +1,42 @@
+{
+  "radioSessionId": "abc-123",
+  "batchId": "batch-1",
+  "pumpkin": false,
+  "sequence": [
+    {
+      "type": "track",
+      "track": {
+        "id": 5275115,
+        "title": "Группа крови",
+        "available": true,
+        "durationMs": 285000,
+        "coverUri": "avatars.yandex.net/get-music-content/2a000001/xxx/%%",
+        "artists": [ { "id": 516, "name": "Кино", "various": false, "composer": false } ],
+        "albums": [ { "id": 5275114, "title": "Группа крови" } ]
+      },
+      "liked": true,
+      "trackParameters": {
+        "queuePosition": 1,
+        "expectedPlaySeconds": 30
+      },
+      "trackId": "5275115:5275114"
+    },
+    {
+      "type": "track",
+      "track": {
+        "id": 116376,
+        "title": "Судно",
+        "available": true,
+        "durationMs": 238000,
+        "coverUri": "avatars.yandex.net/get-music-content/2a000001/zzz/%%",
+        "artists": [ { "id": 264421, "name": "Молчат Дома", "various": false, "composer": false } ],
+        "albums": [ { "id": 49850, "title": "Этажи" } ]
+      },
+      "liked": false,
+      "trackId": "116376:49850"
+    }
+  ],
+  "acceptedSeeds": [ "user:onyourwave" ],
+  "terminated": false,
+  "interactive": true
+}
