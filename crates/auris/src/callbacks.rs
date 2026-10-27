@@ -78,6 +78,7 @@ pub(crate) fn init_login(app: &Arc<App>, ui: &MainWindow) {
             app.login_cancel.store(true, Ordering::Relaxed);
             if let Some(ui) = app.ui.upgrade() {
                 ui.set_login_state(0);
+                ui.set_login_ttl(-1);
             }
         });
     }

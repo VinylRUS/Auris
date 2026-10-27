@@ -56,6 +56,7 @@ export component MainWindow inherits Window {
     in-out property <string> login-url: "";
     in-out property <image> login-qr-image;
     in-out property <string> login-error: "";
+    in-out property <int> login-ttl: -1;           // сек до конца жизни кода, -1 скрыт
 
     // ---- Поиск ----
     in-out property <bool> searching: false;
@@ -220,6 +221,7 @@ export component MainWindow inherits Window {
                 verification-url: root.login-url;
                 qr-image: root.login-qr-image;
                 error-text: root.login-error;
+                ttl-seconds: root.login-ttl;
                 start => { root.login-start(); }
                 open-browser => { root.login-open-browser(); }
                 paste-token(t) => { root.login-paste-token(t); }
