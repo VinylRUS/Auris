@@ -108,6 +108,18 @@ export component LoginPage inherits Rectangle {
     in property <string> verification-url: "";
     in property <image> qr-image;
     in property <string> error-text: "";
+    // Сколько секунд код ещё действителен; -1 — не показывать.
+    in property <int> ttl-seconds: -1;
+
+    // «4:58» — человекочитаемый остаток времени.
+    property <string> ttl-text: {
+        root.ttl-seconds < 0 ? "" :
+        "Код действителен ещё "
+        + (root.ttl-seconds / 60)
+        + ":"
+        + (Math.mod(root.ttl-seconds, 60) < 10 ? "0" : "")
+        + Math.mod(root.ttl-seconds, 60)
+    }
 
     callback start();
     callback open-browser();
@@ -116,12 +128,17 @@ export component LoginPage inherits Rectangle {
 
     background: #14161B;
 
-    HorizontalLayout {
-        // ===================== Левая бренд-панель =====================
-        Rectangle {
-            horizontal-stretch: 1;
-            background: @linear-gradient(150deg, #171A21 0%, #14161B 70%);
-            clip: true;
+    // ===================== Левая бренд-панель =====================
+    // Позиционная геометрия (как у всего каркаса приложения):
+    // layout-ребёнок компонента с внешним width-биндингом упорно
+    // решался по preferred-ширине (~920px) и оставлял 360px пустоты
+    // справа. Явные x/width гарантируют заполнение окна.
+    Rectangle {
+        x: 0;
+        width: parent.width - 460px;
+        height: 100%;
+        background: @linear-gradient(150deg, #171A21 0%, #14161B 70%);
+        clip: true;
 
             // Декоративное свечение (размытые пятна акцента)
             Rectangle {
@@ -230,7 +247,9 @@ export component LoginPage inherits Rectangle {
 
         // ===================== Правая карточка входа =====================
         Rectangle {
+            x: parent.width - 460px;
             width: 460px;
+            height: 100%;
             background: #191C22;
 
             VerticalLayout {
@@ -327,6 +346,14 @@ export component LoginPage inherits Rectangle {
                             width: 100%;
                             height: 100%;
                         }
+                    }
+
+                    // Сколько времени есть на подтверждение
+                    if root.ttl-seconds >= 0: Text {
+                        text: root.ttl-text;
+                        font-size: 12px;
+                        color: Theme.text-3;
+                        horizontal-alignment: center;
                     }
 
                     ActionButton {
@@ -461,5 +488,4 @@ export component LoginPage inherits Rectangle {
                 }
             }
         }
-    }
 }

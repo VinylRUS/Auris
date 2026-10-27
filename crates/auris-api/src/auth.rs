@@ -38,7 +38,7 @@ pub struct DeviceCode {
 /// OAuth-токен.
 ///
 /// Ответ `/token` — тоже snake_case (`access_token`, `refresh_token`, …).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct OAuthToken {
     /// Токен доступа.
     pub access_token: String,
@@ -54,12 +54,34 @@ pub struct OAuthToken {
 }
 
 /// Результат опроса токена.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PollOutcome {
     /// Пользователь подтвердил вход — вот токен.
     Token(OAuthToken),
     /// Ещё не подтверждено — продолжать опрос.
     Pending,
+    /// Сервер просит опрашивать реже (RFC 8628: интервал +5 c).
+    SlowDown,
+    /// `device_code` истёк — нужен новый код.
+    Expired,
+    /// Пользователь отклонил вход на странице подтверждения.
+    Denied,
+}
+
+impl PollOutcome {
+    /// Разбирает поле `error` из ответа 400 `/token`.
+    ///
+    /// Ошибки Device Flow описаны в RFC 8628 §3.5; Яндекс их и возвращает.
+    /// `None` — неизвестная ошибка (её обработает вызывающий как `Err`).
+    pub fn from_error(error: &str) -> Option<Self> {
+        match error {
+            "authorization_pending" => Some(PollOutcome::Pending),
+            "slow_down" => Some(PollOutcome::SlowDown),
+            "expired_token" => Some(PollOutcome::Expired),
+            "access_denied" => Some(PollOutcome::Denied),
+            _ => None,
+        }
+    }
 }
 
 /// Запрашивает код устройства.
@@ -95,7 +117,10 @@ pub async fn request_device_code(
 ///
 /// * `Ok(PollOutcome::Token(_))` — вход подтверждён;
 /// * `Ok(PollOutcome::Pending)` — ждём дальше;
-/// * `Err` — код истёк / отменён пользователем / иная ошибка OAuth.
+/// * `Ok(PollOutcome::SlowDown)` — сервер просит опрашивать реже;
+/// * `Ok(PollOutcome::Expired)` — код истёк, нужен новый;
+/// * `Ok(PollOutcome::Denied)` — пользователь отклонил вход;
+/// * `Err` — сетевая ошибка или неизвестная ошибка OAuth.
 pub async fn poll_token(oauth: &OAuthClient, device_code: &str) -> Result<PollOutcome> {
     let (status, text) = oauth
         .post_form_raw(
@@ -109,15 +134,15 @@ pub async fn poll_token(oauth: &OAuthClient, device_code: &str) -> Result<PollOu
         )
         .await?;
 
-    // 400 с error=authorization_pending — норма для Device Flow.
+    // 400 с error=… — норма для Device Flow (RFC 8628 §3.5).
     if !status.is_success() {
         if let Ok(v) = serde_json::from_str::<Value>(&text) {
             let err = v
                 .get("error")
                 .and_then(|e| e.as_str())
                 .unwrap_or("unknown_oauth_error");
-            if err == "authorization_pending" || err == "slow_down" {
-                return Ok(PollOutcome::Pending);
+            if let Some(outcome) = PollOutcome::from_error(err) {
+                return Ok(outcome);
             }
             return Err(ApiError::OAuth(err.to_string()));
         }
@@ -127,4 +152,35 @@ pub async fn poll_token(oauth: &OAuthClient, device_code: &str) -> Result<PollOu
     let token: OAuthToken = serde_json::from_str(&text)
         .map_err(|e| ApiError::OAuth(format!("bad token response: {e}")))?;
     Ok(PollOutcome::Token(token))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// RFC 8628 §3.5: известные коды ошибок опроса должны превращаться
+    /// в типизированные исходы, неизвестные — оставаться ошибками,
+    /// чтобы приложение могло решить, ретраить их или показать пользователю.
+    #[test]
+    fn poll_error_mapping() {
+        assert_eq!(
+            PollOutcome::from_error("authorization_pending"),
+            Some(PollOutcome::Pending)
+        );
+        assert_eq!(
+            PollOutcome::from_error("slow_down"),
+            Some(PollOutcome::SlowDown)
+        );
+        assert_eq!(
+            PollOutcome::from_error("expired_token"),
+            Some(PollOutcome::Expired)
+        );
+        assert_eq!(
+            PollOutcome::from_error("access_denied"),
+            Some(PollOutcome::Denied)
+        );
+        assert_eq!(PollOutcome::from_error("invalid_client"), None);
+        assert_eq!(PollOutcome::from_error("server_error"), None);
+        assert_eq!(PollOutcome::from_error(""), None);
+    }
 }

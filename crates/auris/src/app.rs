@@ -529,13 +529,17 @@ impl App {
         self.login_cancel.store(false, Ordering::Relaxed);
         let _app = Arc::clone(self);
         self.spawn(|app| async move {
-            app.ui_inv(|ui| ui.set_login_state(1));
+            app.ui_inv(|ui| {
+                ui.set_login_state(1);
+                ui.set_login_ttl(-1);
+            });
             let oauth = auris_api::OAuthClient::new();
             let device_id = random_device_id();
             let code = match auth::request_device_code(&oauth, &device_id, "Auris").await {
                 Ok(c) => c,
                 Err(e) => {
-                    let msg = format!("{e}");
+                    let msg =
+                        format!("Не удалось получить код входа ({e}). Проверьте интернет и повторите попытку.");
                     app.ui_inv(move |ui| {
                         ui.set_login_state(2);
                         ui.set_login_error(msg.into());
@@ -567,33 +571,80 @@ impl App {
             let interval = std::time::Duration::from_secs(code.interval.max(1));
             let deadline =
                 std::time::Instant::now() + std::time::Duration::from_secs(code.expires_in);
+            let mut next_poll = std::time::Instant::now() + interval;
+            let mut interval = interval;
+            let mut fails = 0u32;
+            // Сколько подряд неудачных опросов терпим, прежде чем сдаться
+            // (сетевые заминки не должны убивать вход: у человека есть
+            // целых `expires_in` секунд, чтобы достать телефон).
+            // 12 попыток × интервал 5 с ≈ минута без связи.
+            const MAX_FAILS: u32 = 12;
             loop {
                 if app.login_cancel.load(Ordering::Relaxed) {
                     return;
                 }
-                if std::time::Instant::now() > deadline {
+                let now = std::time::Instant::now();
+                if now > deadline {
                     app.ui_inv(|ui| {
                         ui.set_login_state(2);
                         ui.set_login_error("Код истёк — попробуйте снова".into());
                     });
                     return;
                 }
-                tokio::time::sleep(interval).await;
-                match auth::poll_token(&oauth, &code.device_code).await {
-                    Ok(auth::PollOutcome::Token(token)) => {
-                        app.finish_login(token.access_token).await;
-                        return;
+
+                // Обратный отсчёт: сколько секунд код ещё жив.
+                let ttl = (deadline - now).as_secs() as i32;
+                app.ui_inv(move |ui| ui.set_login_ttl(ttl));
+
+                if now >= next_poll {
+                    match auth::poll_token(&oauth, &code.device_code).await {
+                        Ok(auth::PollOutcome::Token(token)) => {
+                            app.finish_login(token.access_token).await;
+                            return;
+                        }
+                        Ok(auth::PollOutcome::Pending) => {
+                            fails = 0;
+                        }
+                        Ok(auth::PollOutcome::SlowDown) => {
+                            // RFC 8628: увеличиваем интервал на 5 c.
+                            fails = 0;
+                            interval = (interval + std::time::Duration::from_secs(5))
+                                .min(std::time::Duration::from_secs(30));
+                        }
+                        Ok(auth::PollOutcome::Expired) => {
+                            app.ui_inv(|ui| {
+                                ui.set_login_state(2);
+                                ui.set_login_error("Код истёк — попробуйте снова".into());
+                            });
+                            return;
+                        }
+                        Ok(auth::PollOutcome::Denied) => {
+                            app.ui_inv(|ui| {
+                                ui.set_login_state(2);
+                                ui.set_login_error(
+                                    "Вход отклонён на странице подтверждения".into(),
+                                );
+                            });
+                            return;
+                        }
+                        Err(e) => {
+                            fails += 1;
+                            if fails >= MAX_FAILS {
+                                let msg =
+                                    format!("Не удалось связаться с Яндекс ID ({e}). Проверьте интернет и повторите попытку.");
+                                app.ui_inv(move |ui| {
+                                    ui.set_login_state(2);
+                                    ui.set_login_error(msg.into());
+                                });
+                                return;
+                            }
+                            log::warn!("token poll failed ({fails}/{MAX_FAILS}): {e}");
+                        }
                     }
-                    Ok(auth::PollOutcome::Pending) => continue,
-                    Err(e) => {
-                        let msg = format!("{e}");
-                        app.ui_inv(move |ui| {
-                            ui.set_login_state(2);
-                            ui.set_login_error(msg.into());
-                        });
-                        return;
-                    }
+                    next_poll = std::time::Instant::now() + interval;
                 }
+
+                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
             }
         });
     }
@@ -613,6 +664,7 @@ impl App {
                 self.ui_inv(|ui| {
                     ui.set_logged_in(true);
                     ui.set_login_state(0);
+                    ui.set_login_ttl(-1);
                 });
                 self.load_home().await;
             }
