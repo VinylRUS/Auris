@@ -12,8 +12,11 @@ export component SearchPage inherits Rectangle {
     in property <bool> has-best: false;
     in property <[TrackItem]> tracks;
     in property <int> tracks-total: 0;
+    in property <[string]> suggestions;
 
     callback search(string);
+    callback suggest(string);
+    callback accept-suggestion(string);
     callback play-best();
     callback play-index(int);
     callback like-toggled(int);
@@ -29,6 +32,7 @@ export component SearchPage inherits Rectangle {
         field := SearchField {
             placeholder: "Поиск: трек, исполнитель, альбом…";
             accepted(t) => { root.search(t); }
+            edited(t) => { root.suggest(t); }
         }
 
         if !root.has-results && !root.searching: VerticalLayout {
@@ -207,6 +211,56 @@ export component SearchPage inherits Rectangle {
                 }
             }
                     }
+        }
+    }
+
+    // ---- Попап подсказок (последний ребёнок — поверх контента) ----
+    if root.suggestions.length > 0 && !root.searching: Rectangle {
+        x: 24px;
+        y: 54px;
+        width: parent.width - 48px;
+        height: 8px + 36px * root.suggestions.length;
+        border-radius: Theme.r-card;
+        background: rgba(32, 32, 32, 0.97);
+        border-width: 1px;
+        border-color: Theme.stroke;
+        drop-shadow-blur: 18px;
+        drop-shadow-offset-y: 5px;
+        drop-shadow-color: #55000000;
+        clip: true;
+
+        VerticalLayout {
+            padding: 4px;
+            for s[i] in root.suggestions: Rectangle {
+                height: 36px;
+                border-radius: Theme.r-ctl;
+                background: sta.has-hover ? Theme.fill-hover : transparent;
+                HorizontalLayout {
+                    padding-left: 12px; padding-right: 12px;
+                    spacing: 10px;
+                    Icon {
+                        source: Icons.search;
+                        size: 14px;
+                        tint: Theme.text-3;
+                        y: (parent.height - self.height) / 2;
+                    }
+                    Text {
+                        text: s;
+                        font-size: 13.5px;
+                        color: Theme.text-2;
+                        vertical-alignment: center;
+                        overflow: elide;
+                        horizontal-stretch: 1;
+                    }
+                }
+                sta := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        field.text = s;
+                        root.accept-suggestion(s);
+                    }
+                }
+            }
         }
     }
 }

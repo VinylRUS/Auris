@@ -509,6 +509,7 @@ export component SearchField inherits Rectangle {
     in-out property <string> text <=> input.text;
     in property <string> placeholder: "Поиск";
     callback accepted(string);
+    callback edited(string);
 
     height: 36px;
     border-radius: Theme.r-ctl;
@@ -540,6 +541,7 @@ export component SearchField inherits Rectangle {
                 color: Theme.text;
                 vertical-alignment: center;
                 accepted => { root.accepted(root.text); }
+                edited => { root.edited(root.text); }
             }
         }
         if root.text != "": IconButton {
