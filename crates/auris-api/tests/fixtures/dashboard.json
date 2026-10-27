@@ -1,0 +1,48 @@
+{
+  "dashboard": {
+    "stations": [
+      {
+        "id": {
+          "type": "user",
+          "tag": "onyourwave"
+        },
+        "station": {
+          "id": {
+            "type": "user",
+            "tag": "onyourwave"
+          },
+          "name": "Моя волна",
+          "ropits": false
+        }
+      },
+      {
+        "id": {
+          "type": "playlist",
+          "tag": "39852"
+        },
+        "station": {
+          "id": {
+            "type": "playlist",
+            "tag": "39852"
+          },
+          "name": "Плейлист дня",
+          "ropits": true
+        }
+      },
+      {
+        "id": {
+          "type": "genre",
+          "tag": "rock"
+        },
+        "station": {
+          "id": {
+            "type": "genre",
+            "tag": "rock"
+          },
+          "name": "Рок",
+          "ropits": true
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "invocationInfo": {},
+  "contentRestricted": false,
+  "personalPlaylists": {
+    "isFeatured": true,
+    "entities": [
+      {
+        "data": {
+          "playlist": {
+            "uid": 123,
+            "kind": 1001,
+            "title": "Плейлист дня",
+            "trackCount": 64,
+            "owner": {
+              "uid": 123,
+              "login": "user",
+              "name": "Пользователь"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "mixes": {
+    "isFeatured": true,
+    "entities": [
+      {
+        "data": {
+          "playlist": {
+            "uid": 123,
+            "kind": 1002,
+            "title": "Микс свежести",
+            "trackCount": 50
+          }
+        }
+      }
+    ]
+  }
+}

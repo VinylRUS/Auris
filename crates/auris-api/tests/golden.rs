@@ -134,3 +134,86 @@ fn parses_device_code_and_token() {
     assert_eq!(t.expires_in, Some(31_536_000));
     assert!(t.refresh_token.is_some());
 }
+
+#[test]
+fn parses_album_with_tracks() {
+    let a: auris_api::AlbumWithTracks =
+        serde_json::from_str(&fixture("album_with_tracks.json")).unwrap();
+    assert_eq!(a.album.id, 5275114);
+    assert_eq!(a.album.title, "Группа крови");
+    assert_eq!(a.album.artists.len(), 1);
+    assert_eq!(a.labels.len(), 1);
+    assert_eq!(a.all_tracks().len(), 2);
+    assert_eq!(a.all_tracks()[1].title, "Закрой за мной дверь, я ухожу");
+}
+
+#[test]
+fn parses_artist_brief() {
+    let b: auris_api::ArtistBriefInfo =
+        serde_json::from_str(&fixture("artist_brief.json")).unwrap();
+    assert_eq!(b.artist.id, 1595);
+    assert_eq!(b.artist.name, "Кино");
+    assert_eq!(b.popular_tracks.len(), 2);
+    assert_eq!(b.albums.len(), 1);
+    assert_eq!(b.similar_artists.len(), 2);
+    assert_eq!(b.similar_artists[1].name, "Наутилус Помпилиус");
+}
+
+#[test]
+fn parses_similar_tracks() {
+    let s: auris_api::SimilarTracks =
+        serde_json::from_str(&fixture("similar_tracks.json")).unwrap();
+    assert_eq!(s.similar_tracks.len(), 2);
+    assert_eq!(s.similar_tracks[0].title, "Звезда по имени Солнце");
+}
+
+#[test]
+fn parses_supplement() {
+    let s: auris_api::Supplement = serde_json::from_str(&fixture("supplement.json")).unwrap();
+    let lyrics = s.lyrics.expect("lyrics");
+    assert!(lyrics.text.contains("Первый куплет"));
+    assert_eq!(
+        lyrics.major.as_ref().map(|m| m.name.as_str()),
+        Some("Яндекс Музыка")
+    );
+}
+
+#[test]
+fn parses_rotor_dashboard() {
+    let d: auris_api::RotorDashboard = serde_json::from_str(&fixture("dashboard.json")).unwrap();
+    assert_eq!(d.dashboard.stations.len(), 3);
+    let wave = &d.dashboard.stations[0];
+    assert_eq!(wave.id.seed(), "user:onyourwave");
+    assert_eq!(
+        wave.station.as_ref().map(|s| s.name.clone()),
+        Some("Моя волна".into())
+    );
+    let pl = &d.dashboard.stations[1];
+    assert_eq!(pl.id.seed(), "playlist:39852");
+    assert_eq!(pl.station.as_ref().unwrap().name, "Плейлист дня");
+}
+
+#[test]
+fn parses_likes_albums() {
+    #[derive(serde::Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct Resp {
+        likes: Vec<auris_api::LikedAlbum>,
+    }
+    let v: Resp = serde_json::from_str(&fixture("likes_albums.json")).unwrap();
+    assert_eq!(v.likes.len(), 1);
+    assert_eq!(v.likes[0].album.title, "Этажи");
+    assert_eq!(v.likes[0].album.artists[0].name, "Молчат Дома");
+    assert_eq!(v.likes[0].timestamp, Some(1730000000));
+}
+
+#[test]
+fn parses_landing_blocks() {
+    let l: auris_api::Landing = serde_json::from_str(&fixture("landing.json")).unwrap();
+    let personal = l.personal_playlists();
+    assert_eq!(personal.len(), 1);
+    assert_eq!(personal[0].title, "Плейлист дня");
+    let mixes = l.mixes();
+    assert_eq!(mixes.len(), 1);
+    assert_eq!(mixes[0].title, "Микс свежести");
+}

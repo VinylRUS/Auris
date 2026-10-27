@@ -5,6 +5,7 @@
 //! с точки зрения бизнес-логики поля имеют разумные значения по умолчанию.
 
 pub mod account;
+pub mod catalog;
 pub mod download;
 pub mod feed;
 pub mod playlist;
@@ -48,6 +49,11 @@ pub mod flex {
 }
 
 pub use account::{Account, Permissions, Status, Subscription};
+pub use catalog::{
+    AlbumWithTracks, ArtistBriefInfo, Dashboard, Label, Landing, LikedAlbum, LikedArtist,
+    LikedPlaylist, Lyrics, RotorDashboard, SimilarTracks, Station, StationId, StationResult,
+    Supplement,
+};
 pub use download::DownloadInfo;
 pub use feed::{Feed, GeneratedPlaylist};
 pub use playlist::{Owner, Playlist};

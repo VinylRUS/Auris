@@ -1,0 +1,55 @@
+{
+  "uri": "avatars.yandex.net/get-music-content/123456/%%",
+  "type": "album",
+  "trackCount": 2,
+  "artists": [
+    {
+      "id": 1595,
+      "name": "Кино",
+      "various": false,
+      "composer": false
+    }
+  ],
+  "labels": [
+    { "id": 1, "name": "Яндекс Музыка" }
+  ],
+  "available": true,
+  "availableForPremiumUsers": true,
+  "id": 5275114,
+  "title": "Группа крови",
+  "year": 1988,
+  "genre": "rock",
+  "coverUri": "avatars.yandex.net/get-music-content/2a000001/xxx/%%",
+  "volumes": [
+    [
+      {
+        "id": 5275115,
+        "realId": 5275115,
+        "title": "Группа крови",
+        "available": true,
+        "availableForPremiumUsers": true,
+        "durationMs": 285000,
+        "artists": [
+          { "id": 1595, "name": "Кино" }
+        ],
+        "albums": [
+          { "id": 5275114, "title": "Группа крови" }
+        ],
+        "coverUri": "avatars.yandex.net/get-music-content/2a000001/xxx/%%"
+      },
+      {
+        "id": 5275116,
+        "realId": 5275116,
+        "title": "Закрой за мной дверь, я ухожу",
+        "available": true,
+        "durationMs": 228000,
+        "artists": [
+          { "id": 1595, "name": "Кино" }
+        ],
+        "albums": [
+          { "id": 5275114, "title": "Группа крови" }
+        ]
+      }
+    ]
+  ]
+}

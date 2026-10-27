@@ -1,0 +1,43 @@
+{
+  "artist": {
+    "id": 1595,
+    "name": "Кино",
+    "various": false,
+    "composer": false,
+    "cover": {
+      "uri": "avatars.yandex.net/get-music-artist-cover/123/%%"
+    }
+  },
+  "popularTracks": [
+    {
+      "id": 5275115,
+      "title": "Группа крови",
+      "available": true,
+      "durationMs": 285000,
+      "artists": [{ "id": 1595, "name": "Кино" }],
+      "albums": [{ "id": 5275114, "title": "Группа крови" }]
+    },
+    {
+      "id": 41234,
+      "title": "Перемен",
+      "available": true,
+      "durationMs": 282000,
+      "artists": [{ "id": 1595, "name": "Кино" }],
+      "albums": [{ "id": 5275114, "title": "Группа крови" }]
+    }
+  ],
+  "albums": [
+    {
+      "id": 5275114,
+      "title": "Группа крови",
+      "year": 1988,
+      "trackCount": 11,
+      "available": true,
+      "artists": [{ "id": 1595, "name": "Кино" }]
+    }
+  ],
+  "similarArtists": [
+    { "id": 5555, "name": "Алиса" },
+    { "id": 6666, "name": "Наутилус Помпилиус" }
+  ]
+}

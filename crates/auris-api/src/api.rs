@@ -56,6 +56,16 @@ impl Client {
         Err(ApiError::Unexpected("chart: no tracks block found".into()))
     }
 
+    /// `GET /landing3` — полный лендинг (персональные плейлисты, миксы).
+    pub async fn landing(&self, blocks: &[&str]) -> Result<Landing> {
+        let blocks = blocks
+            .iter()
+            .map(|b| b.to_string())
+            .collect::<Vec<_>>()
+            .join(",");
+        self.get("/landing3", &[("blocks", blocks)]).await
+    }
+
     // ------------------------------------------------------------------
     // Поиск
     // ------------------------------------------------------------------
@@ -147,6 +157,58 @@ impl Client {
             .await
     }
 
+    /// `GET /tracks/{id}/similar` — похожие треки.
+    pub async fn tracks_similar(&self, track_id: i64) -> Result<SimilarTracks> {
+        self.get(&format!("/tracks/{track_id}/similar"), &[]).await
+    }
+
+    /// `GET /tracks/{id}/supplement` — текст песни и видео.
+    pub async fn track_supplement(&self, track_id: i64) -> Result<Supplement> {
+        self.get(&format!("/tracks/{track_id}/supplement"), &[])
+            .await
+    }
+
+    // ------------------------------------------------------------------
+    // Альбомы и исполнители
+    // ------------------------------------------------------------------
+
+    /// `GET /albums/{id}/with-tracks` — альбом вместе с треками.
+    pub async fn album_with_tracks(&self, album_id: i64) -> Result<AlbumWithTracks> {
+        self.get(&format!("/albums/{album_id}/with-tracks"), &[])
+            .await
+    }
+
+    /// `GET /albums?album-ids=…` — альбомы по идентификаторам.
+    pub async fn albums(&self, ids: &[i64]) -> Result<Vec<Album>> {
+        if ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        let joined = ids
+            .iter()
+            .map(|i| i.to_string())
+            .collect::<Vec<_>>()
+            .join(",");
+        let v: Value = self.get("/albums", &[("album-ids", joined)]).await?;
+        Ok(v.as_array()
+            .cloned()
+            .map(|arr| {
+                arr.into_iter()
+                    .filter_map(|a| serde_json::from_value::<Album>(a).ok())
+                    .collect()
+            })
+            .unwrap_or_default())
+    }
+
+    /// `GET /artists/{id}/brief-info` — карточка исполнителя
+    /// (популярные треки, альбомы, похожие).
+    pub async fn artists_brief_info(&self, artist_id: i64) -> Result<ArtistBriefInfo> {
+        self.get(
+            &format!("/artists/{artist_id}/brief-info"),
+            &[("locale", "ru".to_string())],
+        )
+        .await
+    }
+
     // ------------------------------------------------------------------
     // Плейлисты
     // ------------------------------------------------------------------
@@ -169,6 +231,46 @@ impl Client {
     /// `GET /users/{uid}/likes/tracks` — любимые треки.
     pub async fn users_likes_tracks(&self, uid: i64) -> Result<LikesTracks> {
         self.get(&format!("/users/{uid}/likes/tracks"), &[]).await
+    }
+
+    /// `GET /users/{uid}/likes/albums` — любимые альбомы.
+    pub async fn users_likes_albums(&self, uid: i64) -> Result<Vec<LikedAlbum>> {
+        #[derive(serde::Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Resp {
+            #[serde(default)]
+            likes: Vec<LikedAlbum>,
+        }
+        let r: Resp = self.get(&format!("/users/{uid}/likes/albums"), &[]).await?;
+        Ok(r.likes)
+    }
+
+    /// `GET /users/{uid}/likes/playlists` — любимые плейлисты.
+    pub async fn users_likes_playlists(&self, uid: i64) -> Result<Vec<LikedPlaylist>> {
+        #[derive(serde::Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Resp {
+            #[serde(default)]
+            likes: Vec<LikedPlaylist>,
+        }
+        let r: Resp = self
+            .get(&format!("/users/{uid}/likes/playlists"), &[])
+            .await?;
+        Ok(r.likes)
+    }
+
+    /// `GET /users/{uid}/likes/artists` — любимые исполнители.
+    pub async fn users_likes_artists(&self, uid: i64) -> Result<Vec<LikedArtist>> {
+        #[derive(serde::Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Resp {
+            #[serde(default)]
+            likes: Vec<LikedArtist>,
+        }
+        let r: Resp = self
+            .get(&format!("/users/{uid}/likes/artists"), &[])
+            .await?;
+        Ok(r.likes)
     }
 
     /// `POST /users/{uid}/likes/tracks/add-multiple` — лайк.
@@ -198,6 +300,12 @@ impl Client {
     // ------------------------------------------------------------------
     // Радио («Моя волна»)
     // ------------------------------------------------------------------
+
+    /// `GET /rotor/stations/dashboard` — станции дашборда
+    /// (Моя волна, премьеры, коллекции и т.д.).
+    pub async fn rotor_stations_dashboard(&self) -> Result<RotorDashboard> {
+        self.get("/rotor/stations/dashboard", &[]).await
+    }
 
     /// `POST /rotor/session/new` — новая сессия радио.
     ///

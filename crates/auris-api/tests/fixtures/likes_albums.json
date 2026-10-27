@@ -1,0 +1,15 @@
+{
+  "likes": [
+    {
+      "timestamp": 1730000000,
+      "album": {
+        "id": 900001,
+        "title": "Этажи",
+        "year": 2017,
+        "trackCount": 10,
+        "available": true,
+        "artists": [{ "id": 22127, "name": "Молчат Дома" }]
+      }
+    }
+  ]
+}

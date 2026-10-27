@@ -1,0 +1,20 @@
+{
+  "similarTracks": [
+    {
+      "id": 100001,
+      "title": "Звезда по имени Солнце",
+      "available": true,
+      "durationMs": 269000,
+      "artists": [{ "id": 1595, "name": "Кино" }],
+      "albums": [{ "id": 5275114, "title": "Группа крови" }]
+    },
+    {
+      "id": 100002,
+      "title": "Спокойная ночь",
+      "available": true,
+      "durationMs": 371000,
+      "artists": [{ "id": 1595, "name": "Кино" }],
+      "albums": [{ "id": 5275114, "title": "Группа крови" }]
+    }
+  ]
+}
