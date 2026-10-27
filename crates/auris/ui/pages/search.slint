@@ -1,0 +1,187 @@
+// Поиск: поле, «лучший результат», таблица треков.
+import { Theme } from "../theme.slint";
+import { Cover, SearchField, TrackRow, ActionButton, Icon } from "../widgets.slint";
+import { BestItem, TrackItem } from "../structs.slint";
+
+export component SearchPage inherits Rectangle {
+    in-out property <string> query <=> field.text;
+    in property <bool> searching: false;
+    in property <bool> has-results: false;
+    in property <BestItem> best;
+    in property <bool> has-best: false;
+    in property <[TrackItem]> tracks;
+    in property <int> tracks-total: 0;
+
+    callback search(string);
+    callback play-best();
+    callback play-index(int);
+    callback like-toggled(int);
+    callback download-clicked(int);
+
+    VerticalLayout {
+        padding: 18px;
+        padding-left: 24px;
+        padding-top: 14px;
+        padding-right: 24px;
+        spacing: 12px;
+
+        field := SearchField {
+            placeholder: "Поиск: трек, исполнитель, альбом…";
+            accepted(t) => { root.search(t); }
+        }
+
+        if !root.has-results && !root.searching: VerticalLayout {
+            alignment: center;
+            vertical-stretch: 1;
+            Text {
+                text: "Найдите любимую музыку";
+                font-size: 18px;
+                font-weight: 700;
+                color: Theme.text;
+                horizontal-alignment: center;
+            }
+            Text {
+                text: "Введите запрос и нажмите Enter";
+                font-size: 13px;
+                color: Theme.text-3;
+                horizontal-alignment: center;
+            }
+        }
+
+        if root.searching: VerticalLayout {
+            alignment: center;
+            vertical-stretch: 1;
+            Text {
+                text: "Ищем…";
+                font-size: 14px;
+                color: Theme.text-3;
+                horizontal-alignment: center;
+            }
+        }
+
+        if root.has-results: Flickable {
+            vertical-stretch: 1;
+            content-height: 80px + 52px * root.tracks.length + 260px;
+
+            VerticalLayout {
+                spacing: 4px;
+
+                // ---- Лучший результат ----
+                if root.has-best: Rectangle {
+                    height: 96px;
+                    border-radius: Theme.r-card;
+                    background: Theme.card;
+                    border-width: 1px;
+                    border-color: Theme.stroke;
+
+                    HorizontalLayout {
+                        padding: 14px;
+                        spacing: 16px;
+                        Cover {
+                            width: 68px; height: 68px;
+                            cover-image: root.best.cover;
+                            cover-variant: root.best.cover-variant;
+                            radius: 8px;
+                        }
+                        VerticalLayout {
+                            alignment: center;
+                            Text {
+                                text: "Лучшее совпадение";
+                                font-size: 11.5px;
+                                font-weight: 700;
+                                letter-spacing: 0.8px;
+                                color: Theme.text-3;
+                            }
+                            Text {
+                                text: root.best.title;
+                                font-size: 17px;
+                                font-weight: 700;
+                                color: Theme.text;
+                                overflow: elide;
+                            }
+                            Text {
+                                text: root.best.subtitle;
+                                font-size: 12.5px;
+                                color: Theme.text-3;
+                                overflow: elide;
+                            }
+                        }
+                        Rectangle { horizontal-stretch: 1; }
+                        ActionButton {
+                            label: "Слушать";
+                            accent: true;
+                            y: (parent.height - 34px) / 2;
+                            clicked => { root.play-best(); }
+                        }
+                    }
+                    TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => { root.play-best(); }
+                    }
+                }
+
+                // ---- Таблица: шапка ----
+                HorizontalLayout {
+                    padding-left: 12px; padding-right: 12px;
+                    height: 34px;
+                    Text {
+                        text: "#";
+                        font-size: 12px;
+                        font-weight: 600;
+                        color: Theme.text-3;
+                        vertical-alignment: center;
+                        width: 26px;
+                        horizontal-alignment: right;
+                    }
+                    Rectangle { width: 40px + 14px; }
+                    Text {
+                        text: "ТРЕК";
+                        font-size: 12px;
+                        font-weight: 600;
+                        color: Theme.text-3;
+                        vertical-alignment: center;
+                        horizontal-stretch: 10;
+                    }
+                    Text {
+                        text: "АЛЬБОМ";
+                        font-size: 12px;
+                        font-weight: 600;
+                        color: Theme.text-3;
+                        vertical-alignment: center;
+                        horizontal-stretch: 8;
+                    }
+                    Rectangle { width: 46px; }
+                    Rectangle { width: 76px; }
+                }
+                Rectangle { height: 1px; background: Theme.stroke; }
+
+                // ---- Таблица: треки ----
+                for item[i] in root.tracks: TrackRow {
+                    index: i + 1;
+                    title: item.title;
+                    artists: item.artists;
+                    album: item.album;
+                    duration-sec: item.duration-sec;
+                    cover-image: item.cover;
+                    cover-variant: item.cover-variant;
+                    liked: item.liked;
+                    is-current: item.is-current;
+                    is-playing: item.is-playing;
+                    dl-state: item.dl-state;
+                    clicked => { root.play-index(i); }
+                    like-toggled => { root.like-toggled(i); }
+                    download-clicked => { root.download-clicked(i); }
+                }
+
+                Text {
+                    text: root.tracks-total > root.tracks.length
+                        ? "Показаны первые " + root.tracks.length + " из " + root.tracks-total
+                        : "";
+                    font-size: 12px;
+                    color: Theme.text-3;
+                    horizontal-alignment: center;
+                }
+            }
+        }
+    }
+}

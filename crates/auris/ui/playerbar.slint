@@ -1,0 +1,150 @@
+// Плеер-бар (нижняя плавающая карточка по мокапу).
+import { Theme } from "theme.slint";
+import { Cover, IconButton, PlayButton, SliderBar, Icon } from "widgets.slint";
+
+export component PlayerBar inherits Rectangle {
+    in property <string> title: "";
+    in property <string> artists: "";
+    in property <image> cover;
+    in property <int> cover-variant: 1;
+    in property <bool> playing: false;
+    in property <bool> liked: false;
+    in property <float> position-sec: 0;
+    in property <float> duration-sec: 1;
+    in property <float> volume: 0.7;
+    in property <bool> shuffle: false;
+    in property <int> repeat: 0;        // 0 выкл, 1 все, 2 один
+    in property <bool> queue-open: false;
+
+    callback toggle-play();
+    callback next();
+    callback prev();
+    callback seek(float);
+    callback set-volume(float);
+    callback toggle-like();
+    callback toggle-shuffle();
+    callback cycle-repeat();
+    callback toggle-queue();
+
+    height: 92px;
+    border-radius: Theme.r-card;
+    background: rgba(30, 30, 30, 0.92);
+    border-width: 1px;
+    border-color: Theme.stroke;
+
+    HorizontalLayout {
+        padding-left: 18px; padding-right: 18px;
+        spacing: 12px;
+
+        // ---- Левая треть: трек ----
+        HorizontalLayout {
+            horizontal-stretch: 10;
+            spacing: 14px;
+            Cover {
+                width: 48px; height: 48px;
+                y: (parent.height - 48px) / 2;
+                cover-image: root.cover;
+                cover-variant: root.cover-variant;
+                radius: 6px;
+            }
+            VerticalLayout {
+                alignment: center;
+                Text {
+                    text: root.title;
+                    font-size: 14px;
+                    font-weight: 600;
+                    color: Theme.text;
+                    overflow: elide;
+                }
+                Text {
+                    text: root.artists;
+                    font-size: 12px;
+                    color: Theme.text-3;
+                    overflow: elide;
+                }
+            }
+            IconButton {
+                glyph: root.liked ? "\u{2665}" : "\u{2661}";
+                on: root.liked;
+                glyph-size: 18px;
+                y: (parent.height - 32px) / 2;
+                clicked => { root.toggle-like(); }
+            }
+        }
+
+        // ---- Центр: управление + прогресс ----
+        VerticalLayout {
+            horizontal-stretch: 12;
+            alignment: center;
+            spacing: 8px;
+
+            HorizontalLayout {
+                alignment: center;
+                spacing: 6px;
+                IconButton { glyph: "\u{21C4}"; on: root.shuffle; glyph-size: 17px; clicked => { root.toggle-shuffle(); } }
+                IconButton { glyph: "\u{25C0}\u{25C0}"; glyph-size: 13px; clicked => { root.prev(); } }
+                PlayButton {
+                    playing: root.playing;
+                    size: 40px;
+                    clicked => { root.toggle-play(); }
+                }
+                IconButton { glyph: "\u{25B6}\u{25B6}"; glyph-size: 13px; clicked => { root.next(); } }
+                IconButton {
+                    glyph: root.repeat == 2 ? "\u{21BB}\u{00B9}" : "\u{21BB}";
+                    on: root.repeat > 0;
+                    glyph-size: 17px;
+                    clicked => { root.cycle-repeat(); }
+                }
+            }
+
+            HorizontalLayout {
+                spacing: 10px;
+                Text {
+                    text: Theme.fmt-time(root.position-sec);
+                    font-size: 11.5px;
+                    color: Theme.text-3;
+                    vertical-alignment: center;
+                    width: 34px;
+                    horizontal-alignment: right;
+                }
+                SliderBar {
+                    horizontal-stretch: 1;
+                    value: root.duration-sec > 0 ? root.position-sec / root.duration-sec : 0;
+                    changed(v) => { root.seek(v); }
+                }
+                Text {
+                    text: Theme.fmt-time(root.duration-sec);
+                    font-size: 11.5px;
+                    color: Theme.text-3;
+                    vertical-alignment: center;
+                    width: 34px;
+                }
+            }
+        }
+
+        // ---- Правая треть: очередь + громкость ----
+        HorizontalLayout {
+            horizontal-stretch: 10;
+            alignment: end;
+            spacing: 8px;
+            IconButton {
+                glyph: "\u{2630}";
+                on: root.queue-open;
+                glyph-size: 16px;
+                y: (parent.height - 32px) / 2;
+                clicked => { root.toggle-queue(); }
+            }
+            IconButton {
+                glyph: "\u{266B}";
+                glyph-size: 16px;
+                y: (parent.height - 32px) / 2;
+            }
+            SliderBar {
+                width: 92px;
+                y: (parent.height - 18px) / 2;
+                value: root.volume;
+                changed(v) => { root.set-volume(v); }
+            }
+        }
+    }
+}

@@ -1,0 +1,42 @@
+// Глобальная тема Auris.
+// Значения по умолчанию = Win11 Fluent Dark (мокап 01-home).
+// Rust применяет пресеты/кастомный акцент, перезаписывая эти свойства.
+
+export global Theme {
+    // Фоны
+    in-out property <color> bg: #202020;          // окно
+    in-out property <color> bg-deep: #1B1B1B;     // шапки, плеер
+    in-out property <color> card: #2A2A2A;        // карточки
+    in-out property <color> fill: #0CFFFFFF;      // заливка контролов
+    in-out property <color> fill-hover: #16FFFFFF;
+
+    // Линии
+    in-out property <color> stroke: #13FFFFFF;
+    in-out property <color> stroke-strong: #1FFFFFFF;
+
+    // Текст
+    in-out property <color> text: #FFFFFFFF;
+    in-out property <color> text-2: #C8FFFFFF;
+    in-out property <color> text-3: #8BFFFFFF;
+
+    // Акцент
+    in-out property <color> accent: #4CC2FF;
+    in-out property <color> accent-deep: #0067C0;
+    in-out property <color> text-on-accent: #FFFFFF;
+    in-out property <color> accent-fill: #244CC2FF;
+    in-out property <color> text-on-accent-fill: #C3E9FF;
+
+    // Радиусы
+    in-out property <length> r-window: 9px;
+    in-out property <length> r-card: 8px;
+    in-out property <length> r-ctl: 6px;
+
+    // Модель окна светлая? (для QR и превью)
+    in-out property <bool> light: false;
+
+    // Формат времени m:ss (или «—» для нуля)
+    pure public function fmt-time(sec: float) -> string {
+        sec <= 0.5 ? "\u{2014}"
+        : floor(sec / 60) + ":" + (Math.mod(floor(sec), 60) < 10 ? "0" : "") + floor(Math.mod(sec, 60))
+    }
+}

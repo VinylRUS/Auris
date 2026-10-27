@@ -1,0 +1,183 @@
+// «Моя волна»: большой хиро, лайк/дизлайк, ближайшие треки.
+import { Theme } from "../theme.slint";
+import { ActionButton, Cover, IconButton, PlayButton, Icon, TrackRow } from "../widgets.slint";
+import { TrackItem } from "../structs.slint";
+
+export component WavePage inherits Rectangle {
+    in property <bool> active: false;
+    in property <string> title: "Моя волна";
+    in property <string> artists: "";
+    in property <image> cover;
+    in property <int> cover-variant: 1;
+    in property <bool> playing: false;
+    in property <float> position-sec: 0;
+    in property <float> duration-sec: 1;
+    in property <bool> liked: false;
+    in property <[TrackItem]> upcoming;
+
+    callback start-wave();
+    callback toggle-play();
+    callback next();
+    callback like();
+    callback dislike();
+    callback seek(float);
+    callback play-index(int);
+    callback like-toggled(int);
+
+    background: @linear-gradient(160deg, Theme.accent-fill, Theme.bg 60%);
+
+    VerticalLayout {
+        padding: 24px;
+        padding-top: 18px;
+        spacing: 6px;
+
+        Flickable {
+            vertical-stretch: 1;
+            content-height: 460px;
+            VerticalLayout {
+                spacing: 0;
+
+                // ---- Хиро ----
+                Rectangle {
+                    height: 220px;
+                    border-radius: Theme.r-card;
+                    background: @linear-gradient(115deg, Theme.accent-fill, transparent 70%);
+
+                    Path {
+                        x: parent.width - 460px;
+                        y: 20px;
+                        width: 440px; height: 180px;
+                        viewbox-width: 440; viewbox-height: 180;
+                        stroke: Theme.accent;
+                        stroke-width: 2px;
+                        fill: transparent;
+                        opacity: 0.55;
+                        commands: "M 0 100 Q 55 20 110 100 T 220 100 T 330 100 T 440 100";
+                    }
+                    Path {
+                        x: parent.width - 460px;
+                        y: 20px;
+                        width: 440px; height: 180px;
+                        viewbox-width: 440; viewbox-height: 180;
+                        stroke: Theme.accent;
+                        stroke-width: 1.6px;
+                        fill: transparent;
+                        opacity: 0.3;
+                        commands: "M 0 130 Q 55 70 110 130 T 220 130 T 330 130 T 440 130";
+                    }
+
+                    HorizontalLayout {
+                        padding: 26px;
+                        spacing: 22px;
+
+                        if root.active: Cover {
+                            width: 168px; height: 168px;
+                            cover-image: root.cover;
+                            cover-variant: root.cover-variant;
+                            radius: 10px;
+                        }
+                        if !root.active: Rectangle {
+                            width: 168px; height: 168px;
+                            border-radius: 10px;
+                            background: Theme.fill;
+                            border-width: 1px;
+                            border-color: Theme.stroke;
+                            Icon {
+                                text: "\u{223F}";
+                                font-size: 54px;
+                                color: Theme.text-3;
+                            }
+                        }
+
+                        VerticalLayout {
+                            alignment: center;
+                            spacing: 8px;
+                            Text {
+                                text: root.active ? "ИГРАЕТ СЕЙЧАС" : "ПЕРСОНАЛЬНЫЙ ПОТОК";
+                                font-size: 11.5px;
+                                font-weight: 700;
+                                letter-spacing: 1.2px;
+                                color: Theme.accent;
+                            }
+                            Text {
+                                text: root.active ? root.title : "Моя волна";
+                                font-size: 28px;
+                                font-weight: 700;
+                                color: Theme.text;
+                                overflow: elide;
+                            }
+                            Text {
+                                text: root.active ? root.artists : "Бесконечный микс из любимых треков и новых открытий";
+                                font-size: 14px;
+                                color: Theme.text-2;
+                                overflow: elide;
+                            }
+
+                            Rectangle { height: 6px; }
+
+                            HorizontalLayout {
+                                spacing: 10px;
+                                alignment: start;
+                                if root.active: IconButton {
+                                    glyph: root.liked ? "\u{2665}" : "\u{2661}";
+                                    on: root.liked;
+                                    glyph-size: 19px;
+                                    size: 36px;
+                                    clicked => { root.like(); }
+                                }
+                                if root.active: IconButton {
+                                    glyph: "\u{2715}";
+                                    glyph-size: 14px;
+                                    size: 36px;
+                                    clicked => { root.dislike(); }
+                                }
+                                if !root.active: ActionButton {
+                                    label: "Слушать волну";
+                                    accent: true;
+                                    height: 38px;
+                                    clicked => { root.start-wave(); }
+                                }
+                                if root.active: PlayButton {
+                                    playing: root.playing;
+                                    size: 44px;
+                                    clicked => { root.toggle-play(); }
+                                }
+                                if root.active: ActionButton {
+                                    label: "Следующий";
+                                    primary-glyph: false;
+                                    height: 38px;
+                                    y: 4px;
+                                    clicked => { root.next(); }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // ---- Ближайшие треки ----
+                if root.upcoming.length > 0: Text {
+                    text: "Дальше в волне";
+                    font-size: 16px;
+                    font-weight: 700;
+                    color: Theme.text;
+                }
+                for item[i] in root.upcoming: TrackRow {
+                    index: i + 1;
+                    title: item.title;
+                    artists: item.artists;
+                    album: item.album;
+                    duration-sec: item.duration-sec;
+                    cover-image: item.cover;
+                    cover-variant: item.cover-variant;
+                    liked: item.liked;
+                    is-current: item.is-current;
+                    is-playing: item.is-playing;
+                    clicked => { root.play-index(i); }
+                    like-toggled => { root.like-toggled(i); }
+                    download-clicked => { }
+                }
+                Rectangle { height: 12px; }
+            }
+        }
+    }
+}

@@ -1,0 +1,122 @@
+// Библиотека: сетка плейлистов + открытый плейлист (таблица треков).
+import { Theme } from "../theme.slint";
+import { ActionButton, SectionHead, TileCard, TrackRow } from "../widgets.slint";
+import { TileItem, TrackItem } from "../structs.slint";
+
+export component LibraryPage inherits Rectangle {
+    in property <[TileItem]> playlists;
+    in property <bool> playlist-open: false;
+    in property <string> playlist-title: "";
+    in property <string> playlist-subtitle: "";
+    in property <[TrackItem]> playlist-tracks;
+
+    callback open-tile(TileItem);
+    callback close-playlist();
+    callback play-all();
+    callback play-index(int);
+    callback like-toggled(int);
+    callback download-clicked(int);
+
+    VerticalLayout {
+        padding: 18px;
+        padding-left: 24px;
+        padding-top: 14px;
+        padding-right: 24px;
+
+        Flickable {
+            vertical-stretch: 1;
+            content-height: root.playlist-open
+                ? 120px + 52px * root.playlist-tracks.length
+                : 300px + root.playlists.length * 190px / 4;
+
+            VerticalLayout {
+                // ---- Открытый плейлист ----
+                if root.playlist-open: VerticalLayout {
+                    spacing: 6px;
+                    HorizontalLayout {
+                        spacing: 16px;
+                        Text {
+                            text: "\u{2190}";
+                            font-size: 22px;
+                            color: Theme.accent;
+                            vertical-alignment: center;
+                            TouchArea {
+                                mouse-cursor: pointer;
+                                clicked => { root.close-playlist(); }
+                            }
+                        }
+                        Text {
+                            text: root.playlist-title;
+                            font-size: 24px;
+                            font-weight: 700;
+                            color: Theme.text;
+                            vertical-alignment: center;
+                            overflow: elide;
+                        }
+                    }
+                    Text {
+                        text: root.playlist-subtitle;
+                        font-size: 13px;
+                        color: Theme.text-3;
+                    }
+                    ActionButton {
+                        label: "Слушать";
+                        accent: true;
+                        clicked => { root.play-all(); }
+                    }
+                    for item[i] in root.playlist-tracks: TrackRow {
+                        index: i + 1;
+                        title: item.title;
+                        artists: item.artists;
+                        album: item.album;
+                        duration-sec: item.duration-sec;
+                        cover-image: item.cover;
+                        cover-variant: item.cover-variant;
+                        liked: item.liked;
+                        is-current: item.is-current;
+                        is-playing: item.is-playing;
+                        dl-state: item.dl-state;
+                        clicked => { root.play-index(i); }
+                        like-toggled => { root.like-toggled(i); }
+                        download-clicked => { root.download-clicked(i); }
+                    }
+                    Rectangle { height: 12px; }
+                }
+
+                // ---- Сетка плейлистов ----
+                if !root.playlist-open: VerticalLayout {
+                    spacing: 0;
+                    Text {
+                        text: "Библиотека";
+                        font-size: 24px;
+                        font-weight: 700;
+                        color: Theme.text;
+                    }
+                    Text {
+                        text: "Ваши плейлисты и любимые треки";
+                        font-size: 13px;
+                        color: Theme.text-3;
+                    }
+
+                    HorizontalLayout {
+                        spacing: 18px;
+                        for tile in root.playlists: TileCard {
+                            title: tile.title;
+                            subtitle: tile.subtitle;
+                            cover-image: tile.cover;
+                            cover-variant: tile.cover-variant;
+                            clicked => { root.open-tile(tile); }
+                        }
+                    }
+
+                    if root.playlists.length == 0: Text {
+                        text: "Пока пусто — плейлисты подгрузятся после входа";
+                        font-size: 13px;
+                        color: Theme.text-3;
+                    }
+                    Rectangle { height: 12px; }
+                }
+            }
+        }
+    }
+}

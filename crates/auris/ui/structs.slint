@@ -1,0 +1,37 @@
+// Общие структуры данных UI.
+
+export struct TrackItem {
+    id: int,
+    title: string,
+    artists: string,
+    album: string,
+    duration-sec: int,
+    cover: image,             // обложка (или пустое изображение → заглушка)
+    cover-variant: int,       // 1..10 — градиент-заглушка
+    liked: bool,
+    is-current: bool,
+    is-playing: bool,
+    dl-state: int,            // 0 нет, 1 в очереди, 2 готово, 3 ошибка
+    dl-progress: int,         // 0..100
+}
+
+export struct TileItem {
+    title: string,
+    subtitle: string,
+    cover: image,
+    cover-variant: int,
+    item-type: int,           // 0 плейлист, 1 альбом, 2 «мне нравится»
+    owner-uid: int,           // владелец плейлиста
+    kind: int,                // kind плейлиста / id альбома
+}
+
+export struct BestItem {
+    item-type: int,           // 0 трек, 1 исполнитель, 2 альбом, 3 плейлист
+    title: string,
+    subtitle: string,
+    cover: image,
+    cover-variant: int,
+    track-id: int,
+    owner-uid: int,
+    kind: int,
+}

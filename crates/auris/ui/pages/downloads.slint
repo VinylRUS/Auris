@@ -1,0 +1,80 @@
+// Скачанное: список загрузок и их статусы.
+import { Theme } from "../theme.slint";
+import { TrackRow } from "../widgets.slint";
+import { TrackItem } from "../structs.slint";
+
+export component DownloadsPage inherits Rectangle {
+    in property <[TrackItem]> items;
+    in property <string> dir-label: "";
+    in property <bool> has-subscription: true;
+
+    VerticalLayout {
+        padding: 18px;
+        padding-left: 24px;
+        padding-top: 14px;
+        padding-right: 24px;
+        spacing: 8px;
+
+        Text {
+            text: "Скачанное";
+            font-size: 24px;
+            font-weight: 700;
+            color: Theme.text;
+        }
+        Text {
+            text: root.dir-label != "" ? "Каталог: " + root.dir-label : "";
+            font-size: 12.5px;
+            color: Theme.text-3;
+            overflow: elide;
+        }
+
+        if !root.has-subscription: Rectangle {
+            height: 56px;
+            border-radius: Theme.r-card;
+            background: Theme.fill;
+            border-width: 1px;
+            border-color: Theme.stroke;
+            Text {
+                text: "Скачивание доступно с подпиской Плюс (так решает сам API)";
+                font-size: 13px;
+                color: Theme.text-2;
+                vertical-alignment: center;
+                horizontal-alignment: center;
+                width: 100%;
+            }
+        }
+
+        Flickable {
+            vertical-stretch: 1;
+            content-height: 40px + 52px * root.items.length;
+
+            VerticalLayout {
+                spacing: 2px;
+                for item[i] in root.items: TrackRow {
+                    index: i + 1;
+                    title: item.title;
+                    artists: item.artists;
+                    album: item.album;
+                    duration-sec: item.duration-sec;
+                    cover-image: item.cover;
+                    cover-variant: item.cover-variant;
+                    liked: item.liked;
+                    is-current: item.is-current;
+                    is-playing: item.is-playing;
+                    dl-state: item.dl-state;
+                    clicked => { }
+                    like-toggled => { }
+                    download-clicked => { }
+                }
+                if root.items.length == 0: Text {
+                    text: "Нажмите \u{21D3} на треке в поиске или плейлисте — он появится здесь";
+                    font-size: 13px;
+                    color: Theme.text-3;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                    height: 120px;
+                }
+            }
+        }
+    }
+}

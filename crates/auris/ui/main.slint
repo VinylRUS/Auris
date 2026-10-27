@@ -1,0 +1,323 @@
+// Auris — главное окно.
+import { Theme } from "theme.slint";
+import { TitleBar } from "titlebar.slint";
+import { SideBar } from "sidebar.slint";
+import { PlayerBar } from "playerbar.slint";
+import { QueuePanel } from "queue.slint";
+import { LoginPage } from "pages/login.slint";
+import { HomePage } from "pages/home.slint";
+import { SearchPage } from "pages/search.slint";
+import { LibraryPage } from "pages/library.slint";
+import { WavePage } from "pages/wave.slint";
+import { DownloadsPage } from "pages/downloads.slint";
+import { RadioPage } from "pages/radio.slint";
+import { SettingsPage } from "pages/settings.slint";
+import { TileItem, TrackItem, BestItem } from "structs.slint";
+
+// Повторно экспортируем глобал темы для доступа из Rust.
+export { Theme } from "theme.slint";
+
+export component MainWindow inherits Window {
+    title: "Auris";
+    no-frame: true;
+    preferred-width: 1280px;
+    preferred-height: 800px;
+    background: Theme.bg;
+
+    // ================= Состояние =================
+    in-out property <bool> logged-in: false;
+    in-out property <int> page: 0;                 // 0 главная, 1 поиск, 2 библиотека,
+                                                   // 3 скачанное, 4 волна, 5 настройки, 6 радио
+    in-out property <bool> queue-open: true;
+    in-out property <bool> win-maximized: false;
+
+    // ---- Пользователь ----
+    in-out property <string> user-name: "";
+    in-out property <string> user-initial: "";
+    in-out property <string> user-login: "";
+    in-out property <string> user-plan: "";
+    in-out property <bool> has-subscription: false;
+
+    // ---- Логин ----
+    in-out property <int> login-state: 0;          // 0 старт, 1 ждём, 2 ошибка
+    in-out property <string> login-user-code: "";
+    in-out property <string> login-url: "";
+    in-out property <image> login-qr-image;
+    in-out property <string> login-error: "";
+
+    // ---- Поиск ----
+    in-out property <bool> searching: false;
+    in-out property <bool> has-results: false;
+    in-out property <bool> has-best: false;
+    in-out property <BestItem> search-best: {
+        item-type: 0, title: "", subtitle: "", cover-variant: 1,
+        track-id: 0, owner-uid: 0, kind: 0,
+    };
+    in-out property <[TrackItem]> search-tracks;
+    in-out property <int> search-total: 0;
+
+    // ---- Главная ----
+    in-out property <string> greeting: "Добрый день";
+    in-out property <int> home-chip: 0;
+    in-out property <[TileItem]> home-recent;
+    in-out property <[TileItem]> home-generated;
+    in-out property <[TileItem]> home-playlists;
+
+    // ---- Библиотека ----
+    in-out property <bool> playlist-open: false;
+    in-out property <string> playlist-title: "";
+    in-out property <string> playlist-subtitle: "";
+    in-out property <[TrackItem]> playlist-tracks;
+    in-out property <[TileItem]> library-playlists;
+
+    // ---- Скачанное ----
+    in-out property <[TrackItem]> downloads-items;
+    in-out property <string> downloads-dir: "";
+
+    // ---- Волна ----
+    in-out property <bool> wave-active: false;
+    in-out property <[TrackItem]> wave-upcoming;
+
+    // ---- Плеер ----
+    in-out property <string> cur-title: "";
+    in-out property <string> cur-artists: "";
+    in-out property <image> cur-cover;
+    in-out property <int> cur-cover-variant: 1;
+    in-out property <bool> playing: false;
+    in-out property <bool> cur-liked: false;
+    in-out property <float> position-sec: 0;
+    in-out property <float> duration-sec: 0;
+    in-out property <float> volume: 0.7;
+    in-out property <bool> shuffle: false;
+    in-out property <int> repeat: 0;               // 0 выкл, 1 все, 2 один
+    in-out property <string> queue-source: "";
+
+    // ---- Очередь ----
+    in-out property <[TrackItem]> queue-items;
+
+    // ---- Настройки ----
+    in-out property <string> settings-preset: "fluent-dark";
+    in-out property <string> settings-accent: "";
+    in-out property <int> settings-quality: 2;
+    in-out property <string> settings-cache-size: "";
+    in-out property <string> settings-version: "0.0.1a";
+    in-out property <string> settings-storage: "";
+
+    // ================= Колбэки в Rust =================
+    callback window-minimize();
+    callback window-maximize();
+    callback window-close();
+
+    callback login-start();
+    callback login-open-browser();
+    callback login-paste-token(string);
+
+    callback search(string);
+    callback play-from-search(int);
+    callback play-best();
+    callback search-like-toggled(int);
+    callback search-download(int);
+
+    callback chip-clicked(int);
+    callback play-wave();
+    callback open-tile(TileItem);
+
+    callback playlist-play-all();
+    callback playlist-play-index(int);
+    callback playlist-like-toggled(int);
+    callback playlist-download(int);
+
+    callback wave-start();
+    callback wave-toggle-play();
+    callback wave-next();
+    callback wave-like();
+    callback wave-dislike();
+    callback wave-play-index(int);
+    callback wave-like-toggled(int);
+
+    callback radio-start(string, string);
+
+    callback player-toggle();
+    callback player-next();
+    callback player-prev();
+    callback player-seek(float);
+    callback player-set-volume(float);
+    callback player-toggle-like();
+    callback player-toggle-shuffle();
+    callback player-cycle-repeat();
+
+    callback queue-play-index(int);
+    callback queue-remove-index(int);
+
+    callback settings-set-theme(string);
+    callback settings-set-accent(string);
+    callback settings-pick-dir();
+    callback settings-set-quality(int);
+    callback settings-clear-cache();
+    callback settings-logout();
+
+    // ================= Каркас =================
+    VerticalLayout {
+        if root.logged-in: TitleBar {
+            window-minimize => { root.window-minimize(); }
+            window-maximize => { root.window-maximize(); }
+            window-close => { root.window-close(); }
+            maximized: root.win-maximized;
+        }
+
+        if root.logged-in: HorizontalLayout {
+            vertical-stretch: 1;
+
+            SideBar {
+                page <=> root.page;
+                user-name: root.user-name;
+                user-plan: root.user-plan;
+                user-initial: root.user-initial;
+                navigate(p) => {
+                    root.playlist-open = false;
+                    root.page = p;
+                }
+            }
+
+            // Область страницы (+ очередь справа)
+            HorizontalLayout {
+                if root.page == 0: HomePage {
+                    greeting: root.greeting;
+                    chip <=> root.home-chip;
+                    has-subscription: root.has-subscription;
+                    recent: root.home-recent;
+                    generated: root.home-generated;
+                    playlists: root.home-playlists;
+                    chip-clicked(c) => { root.chip-clicked(c); }
+                    play-wave => { root.play-wave(); }
+                    open-tile(t) => { root.open-tile(t); }
+                }
+                if root.page == 1: SearchPage {
+                    searching: root.searching;
+                    has-results: root.has-results;
+                    best: root.search-best;
+                    has-best: root.has-best;
+                    tracks: root.search-tracks;
+                    tracks-total: root.search-total;
+                    search(t) => { root.search(t); }
+                    play-best => { root.play-best(); }
+                    play-index(i) => { root.play-from-search(i); }
+                    like-toggled(i) => { root.search-like-toggled(i); }
+                    download-clicked(i) => { root.search-download(i); }
+                }
+                if root.page == 2: LibraryPage {
+                    playlists: root.library-playlists;
+                    playlist-open <=> root.playlist-open;
+                    playlist-title <=> root.playlist-title;
+                    playlist-subtitle <=> root.playlist-subtitle;
+                    playlist-tracks: root.playlist-tracks;
+                    open-tile(t) => { root.open-tile(t); }
+                    close-playlist => { root.playlist-open = false; }
+                    play-all => { root.playlist-play-all(); }
+                    play-index(i) => { root.playlist-play-index(i); }
+                    like-toggled(i) => { root.playlist-like-toggled(i); }
+                    download-clicked(i) => { root.playlist-download(i); }
+                }
+                if root.page == 3: DownloadsPage {
+                    items: root.downloads-items;
+                    dir-label: root.downloads-dir;
+                    has-subscription: root.has-subscription;
+                }
+                if root.page == 4: WavePage {
+                    active: root.wave-active;
+                    title: root.cur-title;
+                    artists: root.cur-artists;
+                    cover: root.cur-cover;
+                    cover-variant: root.cur-cover-variant;
+                    playing: root.playing;
+                    position-sec <=> root.position-sec;
+                    duration-sec <=> root.duration-sec;
+                    liked: root.cur-liked;
+                    upcoming: root.wave-upcoming;
+                    start-wave => { root.wave-start(); }
+                    toggle-play => { root.player-toggle(); }
+                    next => { root.wave-next(); }
+                    like => { root.player-toggle-like(); }
+                    dislike => { root.wave-dislike(); }
+                    play-index(i) => { root.wave-play-index(i); }
+                    like-toggled(i) => { root.wave-like-toggled(i); }
+                }
+                if root.page == 5: SettingsPage {
+                    preset <=> root.settings-preset;
+                    accent-custom <=> root.settings-accent;
+                    quality <=> root.settings-quality;
+                    downloads-dir <=> root.downloads-dir;
+                    cache-size <=> root.settings-cache-size;
+                    user-name: root.user-name;
+                    user-login: root.user-login;
+                    user-plan: root.user-plan;
+                    version <=> root.settings-version;
+                    storage-kind <=> root.settings-storage;
+                    set-theme(t) => { root.settings-set-theme(t); }
+                    set-accent(a) => { root.settings-set-accent(a); }
+                    pick-downloads-dir => { root.settings-pick-dir(); }
+                    set-quality(q) => { root.settings-set-quality(q); }
+                    clear-cache => { root.settings-clear-cache(); }
+                    logout => { root.settings-logout(); }
+                }
+                if root.page == 6: RadioPage {
+                    start-station(seed, name) => { root.radio-start(seed, name); }
+                }
+
+                if root.queue-open: QueuePanel {
+                    items: root.queue-items;
+                    source-label: root.queue-source;
+                    play-index(i) => { root.queue-play-index(i); }
+                    remove-index(i) => { root.queue-remove-index(i); }
+                }
+            }
+        }
+
+        // Плавающий плеер
+        if root.logged-in: Rectangle {
+            height: 104px;
+            background: transparent;
+            PlayerBar {
+                y: 0;
+                x: 12px;
+                width: parent.width - 24px;
+                title: root.cur-title;
+                artists: root.cur-artists;
+                cover: root.cur-cover;
+                cover-variant: root.cur-cover-variant;
+                playing: root.playing;
+                liked: root.cur-liked;
+                position-sec <=> root.position-sec;
+                duration-sec <=> root.duration-sec;
+                volume <=> root.volume;
+                shuffle <=> root.shuffle;
+                repeat <=> root.repeat;
+                queue-open <=> root.queue-open;
+                toggle-play => { root.player-toggle(); }
+                next => { root.player-next(); }
+                prev => { root.player-prev(); }
+                seek(f) => { root.player-seek(f); }
+                set-volume(v) => { root.player-set-volume(v); }
+                toggle-like => { root.player-toggle-like(); }
+                toggle-shuffle => { root.player-toggle-shuffle(); }
+                cycle-repeat => { root.player-cycle-repeat(); }
+                toggle-queue => { root.queue-open = !root.queue-open; }
+            }
+        }
+    }
+
+    // ================= Экран входа (поверх всего) =================
+    if !root.logged-in: LoginPage {
+        x: 0; y: 0;
+        width: 100%;
+        height: 100%;
+        state: root.login-state;
+        user-code: root.login-user-code;
+        verification-url: root.login-url;
+        qr-image: root.login-qr-image;
+        error-text: root.login-error;
+        start => { root.login-start(); }
+        open-browser => { root.login-open-browser(); }
+        paste-token(t) => { root.login-paste-token(t); }
+    }
+}

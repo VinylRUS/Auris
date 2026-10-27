@@ -1,0 +1,154 @@
+// Сайдбар (NavigationView по мокапу).
+import { Theme } from "theme.slint";
+import { MagnifierIcon, Icon } from "widgets.slint";
+
+export component NavItem inherits Rectangle {
+    in property <string> glyph;
+    in property <string> label;
+    in property <bool> active: false;
+    callback clicked;
+
+    height: 40px;
+    border-radius: Theme.r-ctl;
+    background: active ? Theme.accent-fill : (ta.has-hover ? Theme.fill : transparent);
+
+    // Индикатор слева
+    Rectangle {
+        x: -2px;
+        width: 3px;
+        y: 10px; height: parent.height - 20px;
+        border-radius: 2px;
+        background: Theme.accent;
+        visible: root.active;
+    }
+
+    HorizontalLayout {
+        padding-left: 12px; padding-right: 12px;
+        spacing: 14px;
+        Icon {
+            text: root.glyph;
+            font-size: 16px;
+            color: root.active ? Theme.accent : Theme.text-3;
+            vertical-alignment: center;
+        }
+        Text {
+            text: root.label;
+            font-size: 14px;
+            font-weight: root.active ? 700 : 400;
+            color: root.active ? Theme.text-on-accent-fill : Theme.text-2;
+            vertical-alignment: center;
+        }
+    }
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+export component SideBar inherits Rectangle {
+    in property <int> page: 0;
+    in property <string> user-name: "";
+    in property <string> user-plan: "";
+    in property <string> user-initial: "";
+    callback navigate(int);
+
+    width: 264px;
+    background: rgba(255, 255, 255, 0.015);
+    // правая граница (Slint не умеет бордеры по сторонам)
+    Rectangle {
+        x: parent.width - 1px;
+        width: 1px;
+        y: 0;
+        height: 100%;
+        background: Theme.stroke;
+    }
+
+    VerticalLayout {
+        padding: 4px;
+        padding-right: 10px;
+        padding-left: 10px;
+        padding-bottom: 10px;
+        spacing: 2px;
+
+        // Поиск
+        Rectangle {
+            height: 36px;
+            border-radius: Theme.r-ctl;
+            background: Theme.fill;
+            border-width: 1px;
+            border-color: Theme.stroke;
+
+            HorizontalLayout {
+                padding-left: 12px; padding-right: 12px;
+                spacing: 10px;
+                MagnifierIcon { size: 14px; stroke-color: Theme.text-3; }
+                Text {
+                    text: "Поиск";
+                    font-size: 13.5px;
+                    color: Theme.text-3;
+                    vertical-alignment: center;
+                }
+            }
+            TouchArea {
+                mouse-cursor: pointer;
+                clicked => { root.navigate(1); }
+            }
+        }
+
+        NavItem { glyph: "\u{2302}"; label: "Главная"; active: page == 0; clicked => { root.navigate(0); } }
+        NavItem { glyph: "\u{223F}"; label: "Моя волна"; active: page == 4; clicked => { root.navigate(4); } }
+        NavItem { glyph: "\u{25C9}"; label: "Радио"; active: page == 6; clicked => { root.navigate(6); } }
+
+        Text {
+            text: "КОЛЛЕКЦИЯ";
+            font-size: 12px;
+            font-weight: 600;
+            color: Theme.text-3;
+        }
+
+        NavItem { glyph: "\u{25A4}"; label: "Библиотека"; active: page == 2; clicked => { root.navigate(2); } }
+        NavItem { glyph: "\u{21D3}"; label: "Скачанное"; active: page == 3; clicked => { root.navigate(3); } }
+
+        Rectangle { vertical-stretch: 1; }
+
+        NavItem { glyph: "\u{2699}"; label: "Настройки"; active: page == 5; clicked => { root.navigate(5); } }
+
+        // Пользователь
+        Rectangle {
+            height: 44px;
+            border-radius: Theme.r-ctl;
+            HorizontalLayout {
+                padding-left: 10px; padding-right: 10px;
+                spacing: 12px;
+                // Аватар: круг с первой буквой
+                Rectangle {
+                    width: 30px; height: 30px;
+                    y: (parent.height - 30px) / 2;
+                    border-radius: 15px;
+                    background: @linear-gradient(135deg, #F472B6, #FB7185);
+                    Text {
+                        text: root.user-initial != "" ? root.user-initial : "?";
+                        font-size: 12.5px;
+                        font-weight: 700;
+                        color: #FFFFFF;
+                    }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    Text {
+                        text: root.user-name;
+                        font-size: 13.5px;
+                        color: Theme.text-2;
+                        overflow: elide;
+                    }
+                    Text {
+                        text: root.user-plan;
+                        font-size: 11.5px;
+                        color: Theme.accent;
+                        overflow: elide;
+                    }
+                }
+            }
+        }
+    }
+}

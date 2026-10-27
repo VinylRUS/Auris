@@ -1,0 +1,175 @@
+// Главная: волна-хиро, чипы, «недавно», «собрано для вас», плейлисты.
+import { Theme } from "../theme.slint";
+import { ActionButton, Chip, Icon, SectionHead, TileCard } from "../widgets.slint";
+import { TileItem } from "../structs.slint";
+
+export component HomePage inherits Rectangle {
+    in property <string> greeting: "Добрый вечер";
+    in property <int> chip: 0;              // 0 недавно, 1 новинки, 2 чарт
+    in property <bool> has-subscription: false;
+    in property <[TileItem]> recent;
+    in property <[TileItem]> generated;
+    in property <[TileItem]> playlists;
+
+    callback chip-clicked(int);
+    callback play-wave();
+    callback open-tile(TileItem);
+
+    VerticalLayout {
+        padding: 18px;
+        padding-left: 24px;
+        padding-top: 14px;
+        padding-right: 24px;
+        spacing: 0px;
+
+        Flickable {
+            vertical-stretch: 1;
+            content-height: 700px;
+
+            VerticalLayout {
+                spacing: 0px;
+
+                Text {
+                    text: root.greeting;
+                    font-size: 24px;
+                    font-weight: 700;
+                    color: Theme.text;
+                }
+                Text {
+                    text: "Что послушаем сегодня?";
+                    font-size: 13px;
+                    color: Theme.text-3;
+                }
+
+                // ---- Hero: Моя волна ----
+                Rectangle {
+                    height: 148px;
+                    border-radius: Theme.r-card;
+                    clip: true;
+                    background: @linear-gradient(105deg, Theme.accent-fill, #20202000 55%);
+
+                    // Декоративные волны
+                    Path {
+                        x: parent.width - 400px;
+                        y: (parent.height - 100px) / 2;
+                        width: 380px; height: 100px;
+                        viewbox-width: 380; viewbox-height: 100;
+                        stroke: Theme.accent;
+                        stroke-width: 1.6px;
+                        fill: transparent;
+                        opacity: 0.6;
+                        commands: "M 0 62 Q 33 16 66 62 T 132 62 T 198 62 T 264 62 T 330 62 T 396 62";
+                    }
+                    Path {
+                        x: parent.width - 400px;
+                        y: (parent.height - 100px) / 2;
+                        width: 380px; height: 100px;
+                        viewbox-width: 380; viewbox-height: 100;
+                        stroke: Theme.accent;
+                        stroke-width: 1.6px;
+                        fill: transparent;
+                        opacity: 0.35;
+                        commands: "M 0 78 Q 33 40 66 78 T 132 78 T 198 78 T 264 78 T 330 78 T 396 78";
+                    }
+
+                    VerticalLayout {
+                        padding: 26px;
+                        alignment: center;
+                        Text {
+                            text: "ПЕРСОНАЛЬНЫЙ ПОТОК";
+                            font-size: 11.5px;
+                            font-weight: 700;
+                            letter-spacing: 1.2px;
+                            color: Theme.accent;
+                        }
+                        Text {
+                            text: "Моя волна";
+                            font-size: 26px;
+                            font-weight: 700;
+                            color: Theme.text;
+                        }
+                        Text {
+                            text: "Бесконечный микс из любимых треков и новых открытий";
+                            font-size: 13px;
+                            color: Theme.text-2;
+                        }
+                        ActionButton {
+                            label: "Слушать";
+                            accent: true;
+                            height: 34px;
+                            clicked => { root.play-wave(); }
+                        }
+                    }
+                }
+
+                // ---- Чипы ----
+                HorizontalLayout {
+                    spacing: 10px;
+                    alignment: start;
+                    Chip { label: "Недавно"; active: root.chip == 0; clicked => { root.chip-clicked(0); } }
+                    Chip { label: "Новинки"; active: root.chip == 1; clicked => { root.chip-clicked(1); } }
+                    Chip { label: "Чарт"; active: root.chip == 2; clicked => { root.chip-clicked(2); } }
+                }
+
+                // ---- Недавно слушали (история) ----
+                SectionHead {
+                    title: "Недавно слушали";
+                    link-text: root.recent.length > 0 ? "Очистить" : "";
+                    link-clicked => { }
+                }
+                if root.recent.length > 0: HorizontalLayout {
+                    spacing: 18px;
+                    for tile in root.recent: TileCard {
+                        title: tile.title;
+                        subtitle: tile.subtitle;
+                        cover-image: tile.cover;
+                        cover-variant: tile.cover-variant;
+                        clicked => { root.open-tile(tile); }
+                    }
+                }
+                if root.recent.length == 0: Text {
+                    text: "Здесь появится история прослушиваний";
+                    font-size: 13px;
+                    color: Theme.text-3;
+                }
+
+                // ---- Собрано для вас (лента) ----
+                if root.generated.length > 0: SectionHead {
+                    title: "Собрано для вас";
+                }
+                if root.generated.length > 0: HorizontalLayout {
+                    spacing: 18px;
+                    for tile in root.generated: TileCard {
+                        title: tile.title;
+                        subtitle: tile.subtitle;
+                        cover-image: tile.cover;
+                        cover-variant: tile.cover-variant;
+                        clicked => { root.open-tile(tile); }
+                    }
+                }
+
+                // ---- Ваши плейлисты ----
+                SectionHead {
+                    title: "Ваши плейлисты";
+                }
+                if root.playlists.length > 0: HorizontalLayout {
+                    spacing: 18px;
+                    for tile in root.playlists: TileCard {
+                        title: tile.title;
+                        subtitle: tile.subtitle;
+                        cover-image: tile.cover;
+                        cover-variant: tile.cover-variant;
+                        clicked => { root.open-tile(tile); }
+                    }
+                }
+                if root.playlists.length == 0: Text {
+                    text: "Плейлисты появятся после первого входа";
+                    font-size: 13px;
+                    color: Theme.text-3;
+                }
+
+                Rectangle { height: 12px; }
+            }
+        }
+    }
+}

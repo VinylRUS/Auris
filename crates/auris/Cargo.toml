@@ -1,0 +1,39 @@
+[package]
+name = "auris"
+description = "Auris — unofficial native Yandex Music client"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+default-run = "auris"
+
+[dependencies]
+auris-api = { path = "../auris-api" }
+auris-player = { path = "../auris-player" }
+auris-core = { path = "../auris-core" }
+
+slint = "1"
+tokio = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+log = { workspace = true }
+env_logger = { workspace = true }
+dirs = { workspace = true }
+
+qrcode = "0.14"
+image = { version = "0.25", default-features = false, features = ["png"] }
+rfd = { version = "0.15", default-features = false, features = ["xdg-portal", "async-std"] }
+open = "5"
+
+[build-dependencies]
+slint-build = "1"
+
+[features]
+default = ["media-controls"]
+media-controls = ["dep:playwire"]
+
+[dependencies.playwire]
+version = "2"
+optional = true
