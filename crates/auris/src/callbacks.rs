@@ -71,6 +71,16 @@ pub(crate) fn init_login(app: &Arc<App>, ui: &MainWindow) {
             });
         });
     }
+    {
+        let app = Arc::clone(app);
+        ui.on_login_cancel(move || {
+            // Прерываем опрос Device Flow и возвращаемся на стартовый экран.
+            app.login_cancel.store(true, Ordering::Relaxed);
+            if let Some(ui) = app.ui.upgrade() {
+                ui.set_login_state(0);
+            }
+        });
+    }
 }
 
 pub(crate) fn init_search(app: &Arc<App>, ui: &MainWindow) {

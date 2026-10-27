@@ -1,4 +1,13 @@
 // Auris — главное окно.
+//
+// Архитектура размера окна (ВАЖНО, не ломать):
+//  * Явный размер задаётся из Rust через `set_size` (восстановление из
+//    конфига, дефолт 1280×800). Без этого окно создаётся по preferred-
+//    размеру корневого layout, а на экране входа он пуст → 800×600.
+//  * Корневой layout стабилен: TitleBar + один positional Rectangle.
+//    Все страницы — position-дети (width/height 100%), они НЕ участвуют
+//    в layout-констрейнтах и потому не могут сжать/растянуть окно
+//    (раньше страница настроек сжимала окно до 1205px).
 import { Theme } from "theme.slint";
 import { TitleBar } from "titlebar.slint";
 import { SideBar } from "sidebar.slint";
@@ -22,6 +31,8 @@ export component MainWindow inherits Window {
     no-frame: true;
     preferred-width: 1280px;
     preferred-height: 800px;
+    min-width: 960px;
+    min-height: 600px;
     background: Theme.bg;
 
     // ================= Состояние =================
@@ -105,7 +116,7 @@ export component MainWindow inherits Window {
 
     // ---- Обновление ----
     in-out property <int> update-state: 0;   // 0 неизвестно, 1 проверка, 2 актуально,
-                                            // 3 доступно, 4 скачивание, 5 ошибка
+                                             // 3 доступно, 4 скачивание, 5 ошибка
     in-out property <string> update-version: "";
     in-out property <string> update-notes: "";
     in-out property <float> update-progress: 0;
@@ -120,6 +131,7 @@ export component MainWindow inherits Window {
     callback login-start();
     callback login-open-browser();
     callback login-paste-token(string);
+    callback login-cancel();
 
     callback search(string);
     callback play-from-search(int);
@@ -171,176 +183,199 @@ export component MainWindow inherits Window {
 
     // ================= Каркас =================
     VerticalLayout {
-        if root.logged-in: TitleBar {
+        // Титлбар — ВСЕГДА (и на экране входа: окно можно закрыть/свернуть).
+        TitleBar {
             window-minimize => { root.window-minimize(); }
             window-maximize => { root.window-maximize(); }
             window-close => { root.window-close(); }
             maximized: root.win-maximized;
         }
 
-        if root.logged-in: HorizontalLayout {
+        // Контент: positional-контейнер. Дети не влияют на констрейнты окна.
+        Rectangle {
             vertical-stretch: 1;
 
-            SideBar {
-                page <=> root.page;
-                user-name: root.user-name;
-                user-plan: root.user-plan;
-                user-initial: root.user-initial;
-                navigate(p) => {
-                    root.playlist-open = false;
-                    root.page = p;
-                }
+            // ============= Экран входа =============
+            if !root.logged-in: LoginPage {
+                width: 100%;
+                height: 100%;
+                state: root.login-state;
+                user-code: root.login-user-code;
+                verification-url: root.login-url;
+                qr-image: root.login-qr-image;
+                error-text: root.login-error;
+                start => { root.login-start(); }
+                open-browser => { root.login-open-browser(); }
+                paste-token(t) => { root.login-paste-token(t); }
+                cancel => { root.login-cancel(); }
             }
 
-            // Область страницы (+ очередь справа)
-            HorizontalLayout {
-                if root.page == 0: HomePage {
-                    greeting: root.greeting;
-                    chip <=> root.home-chip;
-                    has-subscription: root.has-subscription;
-                    recent: root.home-recent;
-                    generated: root.home-generated;
-                    playlists: root.home-playlists;
-                    chip-clicked(c) => { root.chip-clicked(c); }
-                    play-wave => { root.play-wave(); }
-                    open-tile(t) => { root.open-tile(t); }
-                }
-                if root.page == 1: SearchPage {
-                    searching: root.searching;
-                    has-results: root.has-results;
-                    best: root.search-best;
-                    has-best: root.has-best;
-                    tracks: root.search-tracks;
-                    tracks-total: root.search-total;
-                    search(t) => { root.search(t); }
-                    play-best => { root.play-best(); }
-                    play-index(i) => { root.play-from-search(i); }
-                    like-toggled(i) => { root.search-like-toggled(i); }
-                    download-clicked(i) => { root.search-download(i); }
-                }
-                if root.page == 2: LibraryPage {
-                    playlists: root.library-playlists;
-                    playlist-open <=> root.playlist-open;
-                    playlist-title <=> root.playlist-title;
-                    playlist-subtitle <=> root.playlist-subtitle;
-                    playlist-tracks: root.playlist-tracks;
-                    open-tile(t) => { root.open-tile(t); }
-                    close-playlist => { root.playlist-open = false; }
-                    play-all => { root.playlist-play-all(); }
-                    play-index(i) => { root.playlist-play-index(i); }
-                    like-toggled(i) => { root.playlist-like-toggled(i); }
-                    download-clicked(i) => { root.playlist-download(i); }
-                }
-                if root.page == 3: DownloadsPage {
-                    items: root.downloads-items;
-                    dir-label: root.downloads-dir;
-                    has-subscription: root.has-subscription;
-                }
-                if root.page == 4: WavePage {
-                    active: root.wave-active;
-                    title: root.cur-title;
-                    artists: root.cur-artists;
-                    cover: root.cur-cover;
-                    cover-variant: root.cur-cover-variant;
-                    playing: root.playing;
-                    position-sec <=> root.position-sec;
-                    duration-sec <=> root.duration-sec;
-                    liked: root.cur-liked;
-                    upcoming: root.wave-upcoming;
-                    start-wave => { root.wave-start(); }
-                    toggle-play => { root.player-toggle(); }
-                    next => { root.wave-next(); }
-                    like => { root.player-toggle-like(); }
-                    dislike => { root.wave-dislike(); }
-                    play-index(i) => { root.wave-play-index(i); }
-                    like-toggled(i) => { root.wave-like-toggled(i); }
-                }
-                if root.page == 5: SettingsPage {
-                    preset <=> root.settings-preset;
-                    accent-custom <=> root.settings-accent;
-                    quality <=> root.settings-quality;
-                    downloads-dir <=> root.downloads-dir;
-                    cache-size <=> root.settings-cache-size;
+            // ============= Основное приложение =============
+            if root.logged-in: Rectangle {
+                width: 100%;
+                height: 100%;
+
+                SideBar {
+                    x: 0;
+                    y: 0;
+                    height: 100%;
+                    page <=> root.page;
                     user-name: root.user-name;
-                    user-login: root.user-login;
                     user-plan: root.user-plan;
-                    version <=> root.settings-version;
-                    storage-kind <=> root.settings-storage;
-                    set-theme(t) => { root.settings-set-theme(t); }
-                    set-accent(a) => { root.settings-set-accent(a); }
-                    pick-downloads-dir => { root.settings-pick-dir(); }
-                    set-quality(q) => { root.settings-set-quality(q); }
-                    clear-cache => { root.settings-clear-cache(); }
-                    logout => { root.settings-logout(); }
-                    update-state <=> root.update-state;
-                    update-version <=> root.update-version;
-                    update-notes <=> root.update-notes;
-                    update-progress <=> root.update-progress;
-                    update-error <=> root.update-error;
-                    update-installer <=> root.update-installer;
-                    check-update => { root.update-check(); }
-                    install-update => { root.update-install(); }
-                    cancel-update => { root.update-cancel(); }
-                }
-                if root.page == 6: RadioPage {
-                    start-station(seed, name) => { root.radio-start(seed, name); }
+                    user-initial: root.user-initial;
+                    navigate(p) => {
+                        root.playlist-open = false;
+                        root.page = p;
+                    }
                 }
 
+                // Область страниц: правее сайдбара, выше плеера, левее очереди.
+                pages-host := Rectangle {
+                    x: 264px;
+                    y: 0;
+                    width: parent.width - self.x - (root.queue-open ? 300px : 0px);
+                    height: parent.height - 104px;
+
+                    if root.page == 0: HomePage {
+                        width: 100%; height: 100%;
+                        greeting: root.greeting;
+                        chip <=> root.home-chip;
+                        has-subscription: root.has-subscription;
+                        recent: root.home-recent;
+                        generated: root.home-generated;
+                        playlists: root.home-playlists;
+                        chip-clicked(c) => { root.chip-clicked(c); }
+                        play-wave => { root.play-wave(); }
+                        open-tile(t) => { root.open-tile(t); }
+                    }
+                    if root.page == 1: SearchPage {
+                        width: 100%; height: 100%;
+                        searching: root.searching;
+                        has-results: root.has-results;
+                        best: root.search-best;
+                        has-best: root.has-best;
+                        tracks: root.search-tracks;
+                        tracks-total: root.search-total;
+                        search(t) => { root.search(t); }
+                        play-best => { root.play-best(); }
+                        play-index(i) => { root.play-from-search(i); }
+                        like-toggled(i) => { root.search-like-toggled(i); }
+                        download-clicked(i) => { root.search-download(i); }
+                    }
+                    if root.page == 2: LibraryPage {
+                        width: 100%; height: 100%;
+                        playlists: root.library-playlists;
+                        playlist-open <=> root.playlist-open;
+                        playlist-title <=> root.playlist-title;
+                        playlist-subtitle <=> root.playlist-subtitle;
+                        playlist-tracks: root.playlist-tracks;
+                        open-tile(t) => { root.open-tile(t); }
+                        close-playlist => { root.playlist-open = false; }
+                        play-all => { root.playlist-play-all(); }
+                        play-index(i) => { root.playlist-play-index(i); }
+                        like-toggled(i) => { root.playlist-like-toggled(i); }
+                        download-clicked(i) => { root.playlist-download(i); }
+                    }
+                    if root.page == 3: DownloadsPage {
+                        width: 100%; height: 100%;
+                        items: root.downloads-items;
+                        dir-label: root.downloads-dir;
+                        has-subscription: root.has-subscription;
+                    }
+                    if root.page == 4: WavePage {
+                        width: 100%; height: 100%;
+                        active: root.wave-active;
+                        title: root.cur-title;
+                        artists: root.cur-artists;
+                        cover: root.cur-cover;
+                        cover-variant: root.cur-cover-variant;
+                        playing: root.playing;
+                        position-sec <=> root.position-sec;
+                        duration-sec <=> root.duration-sec;
+                        liked: root.cur-liked;
+                        upcoming: root.wave-upcoming;
+                        start-wave => { root.wave-start(); }
+                        toggle-play => { root.player-toggle(); }
+                        next => { root.wave-next(); }
+                        like => { root.player-toggle-like(); }
+                        dislike => { root.wave-dislike(); }
+                        play-index(i) => { root.wave-play-index(i); }
+                        like-toggled(i) => { root.wave-like-toggled(i); }
+                    }
+                    if root.page == 5: SettingsPage {
+                        width: 100%; height: 100%;
+                        preset <=> root.settings-preset;
+                        accent-custom <=> root.settings-accent;
+                        quality <=> root.settings-quality;
+                        downloads-dir <=> root.downloads-dir;
+                        cache-size <=> root.settings-cache-size;
+                        user-name: root.user-name;
+                        user-login: root.user-login;
+                        user-plan: root.user-plan;
+                        version <=> root.settings-version;
+                        storage-kind <=> root.settings-storage;
+                        set-theme(t) => { root.settings-set-theme(t); }
+                        set-accent(a) => { root.settings-set-accent(a); }
+                        pick-downloads-dir => { root.settings-pick-dir(); }
+                        set-quality(q) => { root.settings-set-quality(q); }
+                        clear-cache => { root.settings-clear-cache(); }
+                        logout => { root.settings-logout(); }
+                        update-state <=> root.update-state;
+                        update-version <=> root.update-version;
+                        update-notes <=> root.update-notes;
+                        update-progress <=> root.update-progress;
+                        update-error <=> root.update-error;
+                        update-installer <=> root.update-installer;
+                        check-update => { root.update-check(); }
+                        install-update => { root.update-install(); }
+                        cancel-update => { root.update-cancel(); }
+                    }
+                    if root.page == 6: RadioPage {
+                        width: 100%; height: 100%;
+                        start-station(seed, name) => { root.radio-start(seed, name); }
+                    }
+                }
+
+                // Панель очереди — справа.
                 if root.queue-open: QueuePanel {
+                    x: parent.width - self.width;
+                    y: 0;
+                    height: parent.height - 104px;
                     items: root.queue-items;
                     source-label: root.queue-source;
                     play-index(i) => { root.queue-play-index(i); }
                     remove-index(i) => { root.queue-remove-index(i); }
                     close => { root.queue-open = false; }
                 }
+
+                // Плавающий плеер-бар (с запасом под тень).
+                PlayerBar {
+                    x: 14px;
+                    y: parent.height - 100px;
+                    width: parent.width - 28px;
+                    title: root.cur-title;
+                    artists: root.cur-artists;
+                    cover: root.cur-cover;
+                    cover-variant: root.cur-cover-variant;
+                    playing: root.playing;
+                    liked: root.cur-liked;
+                    position-sec <=> root.position-sec;
+                    duration-sec <=> root.duration-sec;
+                    volume <=> root.volume;
+                    shuffle <=> root.shuffle;
+                    repeat <=> root.repeat;
+                    queue-open <=> root.queue-open;
+                    toggle-play => { root.player-toggle(); }
+                    next => { root.player-next(); }
+                    prev => { root.player-prev(); }
+                    seek(f) => { root.player-seek(f); }
+                    set-volume(v) => { root.player-set-volume(v); }
+                    toggle-like => { root.player-toggle-like(); }
+                    toggle-shuffle => { root.player-toggle-shuffle(); }
+                    cycle-repeat => { root.player-cycle-repeat(); }
+                    toggle-queue => { root.queue-open = !root.queue-open; }
+                }
             }
         }
-
-        // Плавающий плеер (с запасом под тень)
-        if root.logged-in: Rectangle {
-            height: 104px;
-            background: transparent;
-            PlayerBar {
-                y: 4px;
-                x: 14px;
-                width: parent.width - 28px;
-                title: root.cur-title;
-                artists: root.cur-artists;
-                cover: root.cur-cover;
-                cover-variant: root.cur-cover-variant;
-                playing: root.playing;
-                liked: root.cur-liked;
-                position-sec <=> root.position-sec;
-                duration-sec <=> root.duration-sec;
-                volume <=> root.volume;
-                shuffle <=> root.shuffle;
-                repeat <=> root.repeat;
-                queue-open <=> root.queue-open;
-                toggle-play => { root.player-toggle(); }
-                next => { root.player-next(); }
-                prev => { root.player-prev(); }
-                seek(f) => { root.player-seek(f); }
-                set-volume(v) => { root.player-set-volume(v); }
-                toggle-like => { root.player-toggle-like(); }
-                toggle-shuffle => { root.player-toggle-shuffle(); }
-                cycle-repeat => { root.player-cycle-repeat(); }
-                toggle-queue => { root.queue-open = !root.queue-open; }
-            }
-        }
-    }
-
-    // ================= Экран входа (поверх всего) =================
-    if !root.logged-in: LoginPage {
-        x: 0; y: 0;
-        width: 100%;
-        height: 100%;
-        state: root.login-state;
-        user-code: root.login-user-code;
-        verification-url: root.login-url;
-        qr-image: root.login-qr-image;
-        error-text: root.login-error;
-        start => { root.login-start(); }
-        open-browser => { root.login-open-browser(); }
-        paste-token(t) => { root.login-paste-token(t); }
     }
 }
