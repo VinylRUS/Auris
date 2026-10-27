@@ -29,13 +29,34 @@ fn main() -> anyhow::Result<()> {
     let mut tokens = auris_core::TokenStorage::default();
     let token = tokens.load().unwrap_or(None);
 
-    let api = Arc::new(std::sync::Mutex::new(auris_api::Client::with_token(
-        token.clone().unwrap_or_default(),
-    )));
+    // Без токена — неавторизованный клиент (пустая строка здесь ранее
+    // считалась «авторизацией» и пропускала экран входа).
+    let api = Arc::new(std::sync::Mutex::new(match &token {
+        Some(t) if !t.is_empty() => auris_api::Client::with_token(t.clone()),
+        _ => auris_api::Client::new(),
+    }));
 
     let (player, player_events) = auris_player::spawn()?;
 
     let ui = MainWindow::new()?;
+
+    // Явный размер окна: восстановленный из настроек или дефолт.
+    // ВАЖНО: без set_size окно создаётся по preferred-размеру корневого
+    // layout, который на экране входа пуст → winit-дефолт 800×600.
+    // set_size задаёт размер детерминированно (и флаг has_explicit_size
+    // отключает дальнейшие авто-подгонки под layout).
+    {
+        let (w, h) = {
+            let cw = config.window.width;
+            let ch = config.window.height;
+            if (960.0..=3840.0).contains(&cw) && (600.0..=2160.0).contains(&ch) {
+                (cw, ch)
+            } else {
+                (1280.0, 800.0)
+            }
+        };
+        ui.window().set_size(slint::LogicalSize::new(w, h));
+    }
 
     let app = Arc::new(app::App::new(
         rt.handle().clone(),

@@ -120,12 +120,17 @@ fn parses_rotor_session() {
 
 #[test]
 fn parses_device_code_and_token() {
+    // Формат зафиксирован по живому ответу oauth.yandex.ru (snake_case).
     let d: auris_api::DeviceCode = serde_json::from_str(&fixture("device_code.json")).unwrap();
-    assert_eq!(d.user_code, "ABCD-1234");
+    assert_eq!(d.user_code, "ggjs53l2");
     assert!(d.verification_url.starts_with("https://ya.ru/device"));
     assert_eq!(d.interval, 5);
+    assert_eq!(d.expires_in, 300);
+    assert!(!d.device_code.is_empty());
 
     let t: auris_api::OAuthToken = serde_json::from_str(&fixture("oauth_token.json")).unwrap();
     assert_eq!(t.token_type.as_deref(), Some("bearer"));
     assert!(t.access_token.starts_with("y0_"));
+    assert_eq!(t.expires_in, Some(31_536_000));
+    assert!(t.refresh_token.is_some());
 }

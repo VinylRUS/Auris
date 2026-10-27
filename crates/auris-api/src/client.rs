@@ -56,9 +56,14 @@ impl Client {
         self.token = token;
     }
 
-    /// Токен задан?
+    /// Токен задан и не пуст?
+    ///
+    /// ВАЖНО: пустая строка — не авторизация. Раньше `is_authorized()`
+    /// возвращал true для `Some("")` (клиент, созданный через
+    /// `with_token("".to_string())`), из-за чего приложение пропускало
+    /// экран входа и работало анонимным гостевым аккаунтом.
     pub fn is_authorized(&self) -> bool {
-        self.token.is_some()
+        self.token.as_deref().is_some_and(|t| !t.is_empty())
     }
 
     /// Доступ к общему `reqwest`-клиенту (для обложек, XML, …).

@@ -18,8 +18,10 @@ pub const CLIENT_ID: &str = "23cabbbdc6cd418abb4b39c32c41195d";
 pub const CLIENT_SECRET: &str = "53bc75238f0c4d08a118a51fe9203300";
 
 /// Ответ `POST /device/code`.
+///
+/// Яндекс отвечает в snake_case (`device_code`, `user_code`, …) —
+/// имена полей структуры совпадают с ответом один в один.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct DeviceCode {
     /// Непрозрачный код устройства для опроса токена.
     pub device_code: String,
@@ -34,8 +36,9 @@ pub struct DeviceCode {
 }
 
 /// OAuth-токен.
+///
+/// Ответ `/token` — тоже snake_case (`access_token`, `refresh_token`, …).
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct OAuthToken {
     /// Токен доступа.
     pub access_token: String,

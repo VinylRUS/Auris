@@ -1,7 +1,7 @@
 {
-  "deviceCode": "f9a8bc72-1234-4def-a5b6-7890abcdef12",
-  "userCode": "ABCD-1234",
-  "verificationUrl": "https://ya.ru/device?code=ABCD-1234",
-  "expiresIn": 900,
-  "interval": 5
+  "device_code": "a4c6b5f40a1d4de2964a1631e237eb9c",
+  "expires_in": 300,
+  "interval": 5,
+  "user_code": "ggjs53l2",
+  "verification_url": "https://ya.ru/device"
 }

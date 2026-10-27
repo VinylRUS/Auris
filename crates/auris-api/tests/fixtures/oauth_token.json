@@ -1,6 +1,6 @@
 {
-  "accessToken": "y0_AgAAAAA1example111222333444555666",
-  "refreshToken": "1:rt_9f8e7d6c5b4a:refresh",
-  "expiresIn": 31536000,
-  "tokenType": "bearer"
+  "access_token": "y0_AgAAAAA1example111222333444555666",
+  "expires_in": 31536000,
+  "refresh_token": "1:rt_9f8e7d6c5b4a:refresh",
+  "token_type": "bearer"
 }
