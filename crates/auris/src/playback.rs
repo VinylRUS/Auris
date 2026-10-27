@@ -112,6 +112,16 @@ impl App {
         // Пересобрать модели с отметкой текущего трека
         self.rebuild_models();
         self.publish_media();
+
+        // Панель лирики открыта — подтягиваем текст нового трека.
+        if self
+            .ui
+            .upgrade()
+            .map(|ui| ui.get_lyrics_open())
+            .unwrap_or(false)
+        {
+            self.load_lyrics();
+        }
     }
 
     /// Продвижение очереди: следующий трек по режиму повтора/перемешивания.

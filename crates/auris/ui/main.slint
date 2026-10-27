@@ -13,6 +13,7 @@ import { TitleBar } from "titlebar.slint";
 import { SideBar } from "sidebar.slint";
 import { PlayerBar } from "playerbar.slint";
 import { QueuePanel } from "queue.slint";
+import { LyricsPanel } from "lyrics.slint";
 import { LoginPage } from "pages/login.slint";
 import { HomePage } from "pages/home.slint";
 import { SearchPage } from "pages/search.slint";
@@ -108,6 +109,11 @@ export component MainWindow inherits Window {
     // ---- Очередь ----
     in-out property <[TrackItem]> queue-items;
 
+    // ---- Лирика ----
+    in-out property <bool> lyrics-open: false;
+    in-out property <int> lyrics-state: 0;      // 0 пусто, 1 загрузка, 2 готово, 3 нет текста
+    in-out property <string> lyrics-text: "";
+
     // ---- Настройки ----
     in-out property <string> settings-preset: "fluent-dark";
     in-out property <string> settings-accent: "";
@@ -172,6 +178,8 @@ export component MainWindow inherits Window {
     callback queue-play-index(int);
     callback queue-remove-index(int);
 
+    callback toggle-lyrics();
+
     callback settings-set-theme(string);
     callback settings-set-accent(string);
     callback settings-pick-dir();
@@ -233,11 +241,11 @@ export component MainWindow inherits Window {
                     }
                 }
 
-                // Область страниц: правее сайдбара, выше плеера, левее очереди.
+                // Область страниц: правее сайдбара, выше плеера, левее очереди/лирики.
                 pages-host := Rectangle {
                     x: 264px;
                     y: 0;
-                    width: parent.width - self.x - (root.queue-open ? 300px : 0px);
+                    width: parent.width - self.x - (root.queue-open && !root.lyrics-open ? 300px : 0px);
                     height: parent.height - 104px;
 
                     if root.page == 0: HomePage {
@@ -342,8 +350,8 @@ export component MainWindow inherits Window {
                     }
                 }
 
-                // Панель очереди — справа.
-                if root.queue-open: QueuePanel {
+                // Панель очереди — справа (уступает место панели лирики).
+                if root.queue-open && !root.lyrics-open: QueuePanel {
                     x: parent.width - self.width;
                     y: 0;
                     height: parent.height - 104px;
@@ -352,6 +360,18 @@ export component MainWindow inherits Window {
                     play-index(i) => { root.queue-play-index(i); }
                     remove-index(i) => { root.queue-remove-index(i); }
                     close => { root.queue-open = false; }
+                }
+
+                // Панель текста песни — справа, вместо очереди.
+                if root.lyrics-open: LyricsPanel {
+                    x: parent.width - self.width;
+                    y: 0;
+                    height: parent.height - 104px;
+                    title: root.cur-title;
+                    artists: root.cur-artists;
+                    state: root.lyrics-state;
+                    text: root.lyrics-text;
+                    close => { root.lyrics-open = false; }
                 }
 
                 // Плавающий плеер-бар (с запасом под тень).
@@ -371,6 +391,7 @@ export component MainWindow inherits Window {
                     shuffle <=> root.shuffle;
                     repeat <=> root.repeat;
                     queue-open <=> root.queue-open;
+                    lyrics-open: root.lyrics-open;
                     toggle-play => { root.player-toggle(); }
                     next => { root.player-next(); }
                     prev => { root.player-prev(); }
@@ -379,7 +400,15 @@ export component MainWindow inherits Window {
                     toggle-like => { root.player-toggle-like(); }
                     toggle-shuffle => { root.player-toggle-shuffle(); }
                     cycle-repeat => { root.player-cycle-repeat(); }
-                    toggle-queue => { root.queue-open = !root.queue-open; }
+                    toggle-queue => {
+                        root.queue-open = !root.queue-open;
+                        if (root.queue-open) { root.lyrics-open = false; }
+                    }
+                    toggle-lyrics => {
+                        root.lyrics-open = !root.lyrics-open;
+                        if (root.lyrics-open) { root.queue-open = false; }
+                        root.toggle-lyrics();
+                    }
                 }
             }
         }

@@ -13,7 +13,7 @@ use auris_player::{PlayerEvent, PlayerHandle};
 use slint::ComponentHandle;
 use slint::Weak;
 
-use crate::models::{self, SharedCache};
+use crate::models::{self, LyricsUi, SharedCache};
 use crate::MainWindow;
 
 /// Состояние очереди.
@@ -351,6 +351,83 @@ impl App {
             )));
         });
         Ok(())
+    }
+
+    // ------------------------------------------------------------------
+    // Текст песни
+    // ------------------------------------------------------------------
+
+    /// Переключает панель текста песни (кнопка в плеере).
+    pub fn toggle_lyrics_panel(self: &Arc<Self>) {
+        let open = self
+            .ui
+            .upgrade()
+            .map(|ui| !ui.get_lyrics_open())
+            .unwrap_or(false);
+        self.ui_inv(move |ui| ui.set_lyrics_open(open));
+        if open {
+            self.load_lyrics();
+        }
+    }
+
+    /// Загружает текст текущего трека: кеш → `GET /tracks/{id}/supplement`.
+    pub fn load_lyrics(self: &Arc<Self>) {
+        let track = {
+            let q = self.queue.lock().expect("queue");
+            q.index.and_then(|i| q.tracks.get(i).cloned())
+        };
+        let Some(track) = track else {
+            self.ui_inv(|ui| {
+                ui.set_lyrics_state(0);
+                ui.set_lyrics_text("".into());
+            });
+            return;
+        };
+        // Кеш (включая отрицательный результат — «текста нет»).
+        let cached = self
+            .ui_cache
+            .lock()
+            .expect("cache")
+            .lyrics
+            .get(&track.id)
+            .cloned();
+        if let Some(cached) = cached {
+            self.ui_inv(move |ui| ui.set_cached_lyrics(cached));
+            return;
+        }
+        self.ui_inv(|ui| {
+            ui.set_lyrics_state(1);
+            ui.set_lyrics_text("".into());
+        });
+        let _app = Arc::clone(self);
+        self.spawn(|app| async move {
+            let client = app.api.lock().expect("api").clone();
+            match client.track_supplement(track.id).await {
+                Ok(sup) => {
+                    let text = sup
+                        .lyrics
+                        .map(|l| l.text)
+                        .unwrap_or_default()
+                        .replace("\r\n", "\n");
+                    let text = if text.trim().is_empty() {
+                        None
+                    } else {
+                        Some(text.trim().to_string())
+                    };
+                    app.ui_cache
+                        .lock()
+                        .expect("cache")
+                        .lyrics
+                        .insert(track.id, text.clone());
+                    app.ui_inv(move |ui| ui.set_cached_lyrics(text));
+                }
+                Err(e) => {
+                    // Ошибку не кешируем — при следующем открытии повторим.
+                    log::warn!("lyrics {}: {e}", track.id);
+                    app.ui_inv(|ui| ui.set_lyrics_state(3));
+                }
+            }
+        });
     }
 
     // ------------------------------------------------------------------
