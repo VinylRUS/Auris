@@ -212,9 +212,26 @@ impl OAuthClient {
         form: &[(&str, &str)],
     ) -> Result<(reqwest::StatusCode, String)> {
         let url = format!("{OAUTH_BASE}{path}");
+        // Секрет в журнал не пишем — только факт его наличия.
+        let safe: Vec<(&str, &str)> = form
+            .iter()
+            .map(|(k, v)| (*k, if *k == "client_secret" { "***" } else { *v }))
+            .collect();
+        log::debug!("oauth POST {path} {safe:?}");
         let resp = self.http.post(&url).form(form).send().await?;
         let status = resp.status();
         let text = resp.text().await?;
+        if status.is_success() {
+            log::debug!("oauth {path} → {status}");
+        } else {
+            // Неуспех — на info: heartbeat опроса (authorization_pending)
+            // и реальные ошибки OAuth должны попадать в logs/auris.log
+            // без включения debug-уровня.
+            log::info!(
+                "oauth {path} → {status}: {}",
+                crate::auth::truncate_chars(&text, 200)
+            );
+        }
         Ok((status, text))
     }
 }

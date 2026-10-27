@@ -1,4 +1,5 @@
-//! Локальная история прослушиваний («Недавно слушали»).
+//! Локальная история прослушиваний («Недавно слушали»):
+//! `<корень данных>/data/history.json`.
 
 use std::path::PathBuf;
 
@@ -22,18 +23,13 @@ pub struct History {
 
 impl History {
     /// Путь к файлу истории.
-    fn path() -> anyhow::Result<PathBuf> {
-        Ok(dirs::data_dir()
-            .ok_or_else(|| anyhow::anyhow!("no data directory"))?
-            .join("auris")
-            .join("history.json"))
+    fn path() -> PathBuf {
+        crate::paths::data_dir().join("history.json")
     }
 
     /// Загружает историю (отсутствие файла — не ошибка).
     pub fn load() -> Self {
-        let Ok(path) = Self::path() else {
-            return Self::default();
-        };
+        let path = Self::path();
         std::fs::read_to_string(path)
             .ok()
             .and_then(|raw| serde_json::from_str(&raw).ok())
@@ -42,7 +38,7 @@ impl History {
 
     /// Сохраняет историю.
     pub fn save(&self) -> anyhow::Result<()> {
-        let path = Self::path()?;
+        let path = Self::path();
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;
         }

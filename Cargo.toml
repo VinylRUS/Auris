@@ -30,7 +30,6 @@ thiserror = "2"
 
 # utils
 log = "0.4"
-env_logger = "0.11"
 dirs = "6"
 md-5 = "0.10"
 
