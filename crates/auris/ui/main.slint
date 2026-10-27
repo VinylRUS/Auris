@@ -103,6 +103,15 @@ export component MainWindow inherits Window {
     in-out property <string> settings-version: "0.0.1a";
     in-out property <string> settings-storage: "";
 
+    // ---- Обновление ----
+    in-out property <int> update-state: 0;   // 0 неизвестно, 1 проверка, 2 актуально,
+                                            // 3 доступно, 4 скачивание, 5 ошибка
+    in-out property <string> update-version: "";
+    in-out property <string> update-notes: "";
+    in-out property <float> update-progress: 0;
+    in-out property <string> update-error: "";
+    in-out property <bool> update-installer: false;   // true на Windows
+
     // ================= Колбэки в Rust =================
     callback window-minimize();
     callback window-maximize();
@@ -155,6 +164,10 @@ export component MainWindow inherits Window {
     callback settings-set-quality(int);
     callback settings-clear-cache();
     callback settings-logout();
+
+    callback update-check();
+    callback update-install();
+    callback update-cancel();
 
     // ================= Каркас =================
     VerticalLayout {
@@ -259,6 +272,15 @@ export component MainWindow inherits Window {
                     set-quality(q) => { root.settings-set-quality(q); }
                     clear-cache => { root.settings-clear-cache(); }
                     logout => { root.settings-logout(); }
+                    update-state <=> root.update-state;
+                    update-version <=> root.update-version;
+                    update-notes <=> root.update-notes;
+                    update-progress <=> root.update-progress;
+                    update-error <=> root.update-error;
+                    update-installer <=> root.update-installer;
+                    check-update => { root.update-check(); }
+                    install-update => { root.update-install(); }
+                    cancel-update => { root.update-cancel(); }
                 }
                 if root.page == 6: RadioPage {
                     start-station(seed, name) => { root.radio-start(seed, name); }

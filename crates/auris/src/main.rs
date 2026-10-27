@@ -9,6 +9,7 @@ mod media;
 mod models;
 mod playback;
 mod qr;
+mod update;
 
 slint::include_modules!();
 
@@ -48,6 +49,9 @@ fn main() -> anyhow::Result<()> {
 
     app::App::init(&app, &ui);
     app.bootstrap();
+
+    // Тихая проверка обновлений в фоне.
+    update::startup_check(&app);
 
     // Таймер опроса плеера (держим в main — Slint Timer не Send).
     let tick_app = Arc::clone(&app);

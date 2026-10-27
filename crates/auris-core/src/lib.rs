@@ -14,6 +14,7 @@ pub mod downloads;
 pub mod history;
 pub mod theme;
 pub mod token;
+pub mod update;
 
 pub use config::{Config, Quality};
 pub use theme::{Theme, ThemePreset};

@@ -568,7 +568,7 @@ dependencies = [
 
 [[package]]
 name = "auris"
-version = "0.0.1-alpha.1"
+version = "0.0.1-beta.1"
 dependencies = [
  "anyhow",
  "auris-api",
@@ -588,11 +588,12 @@ dependencies = [
  "slint",
  "slint-build",
  "tokio",
+ "winresource",
 ]
 
 [[package]]
 name = "auris-api"
-version = "0.0.1-alpha.1"
+version = "0.0.1-beta.1"
 dependencies = [
  "anyhow",
  "log",
@@ -607,7 +608,7 @@ dependencies = [
 
 [[package]]
 name = "auris-core"
-version = "0.0.1-alpha.1"
+version = "0.0.1-beta.1"
 dependencies = [
  "anyhow",
  "auris-api",
@@ -619,12 +620,13 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "sha2",
  "tokio",
 ]
 
 [[package]]
 name = "auris-player"
-version = "0.0.1-alpha.1"
+version = "0.0.1-beta.1"
 dependencies = [
  "anyhow",
  "log",
@@ -7312,6 +7314,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23b97319f7b8343df12cc98938e5c3eb436064524c8d2b4e30a1d3a36eecdf81"
 dependencies = [
  "memchr",
+]
+
+[[package]]
+name = "winresource"
+version = "0.1.34"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a2bc6d36480b829272a5bdabf08e6dca8004761c1da7e35efef800540c66221b"
+dependencies = [
+ "toml",
+ "version_check",
 ]
 
 [[package]]

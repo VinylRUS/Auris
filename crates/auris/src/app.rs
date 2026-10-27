@@ -68,6 +68,8 @@ pub struct App {
     pub history: Arc<Mutex<auris_core::history::History>>,
     /// Отмена логина.
     pub login_cancel: Arc<AtomicBool>,
+    /// Отмена скачивания обновления.
+    pub update_cancel: Arc<AtomicBool>,
     /// UID аккаунта.
     pub uid: Arc<Mutex<i64>>,
     /// Слабая ссылка на окно.
@@ -117,6 +119,7 @@ impl App {
             ui_cache: Arc::new(Mutex::new(models::UiCache::default())),
             history,
             login_cancel: Arc::new(AtomicBool::new(false)),
+            update_cancel: Arc::new(AtomicBool::new(false)),
             uid: Arc::new(Mutex::new(0)),
             ui,
             storage_kind: Arc::new(Mutex::new(tokens.kind)),
@@ -436,6 +439,7 @@ impl App {
         crate::callbacks::init_queue(app, ui);
         crate::callbacks::init_wave(app, ui);
         crate::callbacks::init_settings(app, ui);
+        crate::update::init(app, ui);
 
         // Медиа-контролы ОС (SMTC/MPRIS)
         #[cfg(feature = "media-controls")]
@@ -454,7 +458,7 @@ impl App {
             Quality::High => 2,
         });
         ui.set_downloads_dir(cfg.downloads.dir.to_string_lossy().to_string().into());
-        ui.set_settings_version(env!("CARGO_PKG_VERSION").into());
+        ui.set_settings_version(display_version().into());
         ui.set_volume(cfg.volume);
         let cache_size = format_bytes(app.cache.size_bytes());
         ui.set_settings_cache_size(cache_size.into());
@@ -462,6 +466,17 @@ impl App {
         // Громкость из настроек
         app.player.send(auris_player::Cmd::SetVolume(cfg.volume));
     }
+}
+
+/// Человекочитаемая версия: `0.0.1-beta.1` → `0.0.1b`.
+pub fn display_version() -> String {
+    env!("CARGO_PKG_VERSION")
+        .replace("-alpha.1", "a")
+        .replace("-beta.1", "b")
+        .replace("-rc.1", "rc")
+        .replace("-alpha.", "a")
+        .replace("-beta.", "b")
+        .replace("-rc.", "rc")
 }
 
 /// Приветствие по времени суток (UTC+3).

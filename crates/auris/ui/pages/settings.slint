@@ -174,12 +174,24 @@ export component SettingsPage inherits Rectangle {
     in property <string> version: "";
     in property <string> storage-kind: "";
 
+    // Обновление: 0 неизвестно, 1 проверка, 2 актуально,
+    // 3 доступно, 4 скачивание, 5 ошибка
+    in property <int> update-state: 0;
+    in property <string> update-version: "";
+    in property <string> update-notes: "";
+    in property <float> update-progress: 0;
+    in property <string> update-error: "";
+    in property <bool> update-installer: false;
+
     callback set-theme(string);
     callback set-accent(string);              // "" = сброс на пресет
     callback pick-downloads-dir();
     callback set-quality(int);
     callback clear-cache();
     callback logout();
+    callback check-update();
+    callback install-update();
+    callback cancel-update();
 
     VerticalLayout {
         padding: 18px;
@@ -189,7 +201,7 @@ export component SettingsPage inherits Rectangle {
 
         Flickable {
             vertical-stretch: 1;
-            content-height: 960px;
+            content-height: 1140px;
 
             VerticalLayout {
                 spacing: 14px;
@@ -395,6 +407,95 @@ export component SettingsPage inherits Rectangle {
                             primary-glyph: false;
                             height: 32px;
                             clicked => { root.logout(); }
+                        }
+                    }
+                }
+
+                // ============ Обновление ============
+                SettingsCard {
+                    title: "Обновление";
+                    Text {
+                        text: "Проверка выполняется автоматически при запуске · канал: GitHub Releases";
+                        font-size: 12.5px;
+                        color: Theme.text-3;
+                    }
+
+                    // Статус по состоянию
+                    if root.update-state == 1: Text {
+                        text: "Проверяем обновления…";
+                        font-size: 13px;
+                        color: Theme.text-2;
+                    }
+                    if root.update-state == 2: Text {
+                        text: "Установлена последняя версия (" + root.version + ")";
+                        font-size: 13px;
+                        color: Theme.text-2;
+                    }
+                    if root.update-state == 3: Text {
+                        text: "Доступна новая версия: " + root.update-version;
+                        font-size: 13px;
+                        font-weight: 600;
+                        color: Theme.accent;
+                    }
+                    if root.update-state == 4: Text {
+                        text: "Скачивание обновления… " + Math.round(root.update-progress * 100) + "%";
+                        font-size: 13px;
+                        color: Theme.text-2;
+                    }
+                    if root.update-state == 5: Text {
+                        text: root.update-error;
+                        font-size: 12.5px;
+                        color: #F0716E;
+                        wrap: word-wrap;
+                    }
+
+                    // Примечания к версии
+                    if root.update-state == 3 && root.update-notes != "": Text {
+                        text: root.update-notes;
+                        font-size: 12.5px;
+                        color: Theme.text-3;
+                        wrap: word-wrap;
+                    }
+
+                    // Прогресс-бар скачивания
+                    if root.update-state == 4: Rectangle {
+                        height: 6px;
+                        border-radius: 3px;
+                        background: Theme.fill;
+                        Rectangle {
+                            x: 0; y: 0;
+                            height: 100%;
+                            border-radius: 3px;
+                            width: parent.width * Math.min(1.0, Math.max(0.0, root.update-progress));
+                            background: Theme.accent;
+                        }
+                    }
+
+                    HorizontalLayout {
+                        spacing: 10px;
+                        alignment: start;
+
+                        // Установить / открыть страницу релиза
+                        if root.update-state == 3: ActionButton {
+                            label: root.update-installer ? "Скачать и установить" : "Открыть страницу загрузки";
+                            height: 32px;
+                            clicked => { root.install-update(); }
+                        }
+
+                        // Отмена скачивания
+                        if root.update-state == 4: ActionButton {
+                            label: "Отменить";
+                            primary-glyph: false;
+                            height: 32px;
+                            clicked => { root.cancel-update(); }
+                        }
+
+                        // Проверить / повторить
+                        if root.update-state != 1 && root.update-state != 4: ActionButton {
+                            label: "Проверить обновления";
+                            primary-glyph: false;
+                            height: 32px;
+                            clicked => { root.check-update(); }
                         }
                     }
                 }
