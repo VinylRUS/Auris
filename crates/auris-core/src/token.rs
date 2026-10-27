@@ -1,4 +1,5 @@
-//! Хранилище OAuth-токена: системный keyring с файловым fallback.
+//! Хранилище OAuth-токена: системный keyring с файловым fallback
+//! (файл лежит рядом с программой: `<корень>/data/tokens.json`).
 
 use std::path::PathBuf;
 
@@ -11,7 +12,7 @@ pub enum StorageKind {
     /// Системный keyring (Windows Credential Manager / macOS Keychain /
     /// Freedesktop Secret Service).
     Keyring,
-    /// Файл `tokens.json` в конфиг-каталоге (fallback без DBus).
+    /// Файл `tokens.json` в каталоге данных (fallback без DBus).
     File,
 }
 
@@ -108,15 +109,12 @@ impl TokenStorage {
     // файл (fallback)
     // ------------------------------------------------------------------
 
-    fn file_path() -> anyhow::Result<PathBuf> {
-        Ok(dirs::config_dir()
-            .ok_or_else(|| anyhow::anyhow!("no config directory"))?
-            .join("auris")
-            .join("tokens.json"))
+    fn file_path() -> PathBuf {
+        crate::paths::data_dir().join("tokens.json")
     }
 
     fn load_file() -> anyhow::Result<Option<String>> {
-        let path = Self::file_path()?;
+        let path = Self::file_path();
         if !path.exists() {
             return Ok(None);
         }
@@ -131,7 +129,7 @@ impl TokenStorage {
     }
 
     fn store_file(token: &str) -> anyhow::Result<()> {
-        let path = Self::file_path()?;
+        let path = Self::file_path();
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;
         }
@@ -146,7 +144,7 @@ impl TokenStorage {
     }
 
     fn purge_file() -> anyhow::Result<()> {
-        let path = Self::file_path()?;
+        let path = Self::file_path();
         if path.exists() {
             std::fs::remove_file(&path)?;
         }

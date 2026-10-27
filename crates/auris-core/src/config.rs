@@ -1,4 +1,4 @@
-//! Настройки приложения (JSON в конфиг-каталоге ОС).
+//! Настройки приложения (JSON рядом с программой: `<корень>/config`).
 
 use std::path::PathBuf;
 
@@ -125,11 +125,10 @@ impl Default for Config {
 }
 
 impl Config {
-    /// Путь к файлу настроек.
+    /// Путь к файлу настроек: `<корень данных>/config/config.json`
+    /// (по умолчанию — рядом с исполняемым файлом, см. [`crate::paths`]).
     pub fn path() -> anyhow::Result<PathBuf> {
-        let dir =
-            dirs::config_dir().ok_or_else(|| anyhow::anyhow!("no config directory on this OS"))?;
-        Ok(dir.join("auris").join("config.json"))
+        Ok(crate::paths::config_dir().join("config.json"))
     }
 
     /// Загружает настройки; при отсутствии/поломке создаёт дефолтные.
@@ -162,10 +161,10 @@ impl Config {
         Ok(())
     }
 
-    /// Каталог кеша (обложки, аудио).
+    /// Каталог кеша (обложки, аудио): `<корень>/cache` по умолчанию.
     pub fn cache_root(&self) -> PathBuf {
         self.cache_dir
             .clone()
-            .unwrap_or_else(|| dirs::cache_dir().unwrap_or_default().join("auris"))
+            .unwrap_or_else(crate::paths::cache_dir)
     }
 }

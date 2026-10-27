@@ -184,7 +184,8 @@ pub async fn download_asset(
     }
     let total = resp.content_length().unwrap_or(0);
 
-    let dir = std::env::temp_dir().join("auris-update");
+    // Загрузки обновлений — тоже рядом с программой, не в системный temp.
+    let dir = crate::paths::updates_dir();
     std::fs::create_dir_all(&dir)?;
     // Уникальное имя, чтобы не конфликтовать с параллельными запусками.
     let path = dir.join(format!(

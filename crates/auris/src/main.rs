@@ -6,6 +6,7 @@ mod app;
 mod bridge;
 mod callbacks;
 mod demo;
+mod logging;
 mod media;
 mod models;
 mod playback;
@@ -17,7 +18,12 @@ slint::include_modules!();
 use std::sync::Arc;
 
 fn main() -> anyhow::Result<()> {
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+    // Журнал — в папку установки (logs/auris.log), эхо — в консоль.
+    // Инициализируем первым: всё, что ниже, уже попадает в файл.
+    logging::init();
+    // Настройки/токен/история из старых системных каталогов —
+    // переносим к программе (однократно, копированием).
+    auris_core::paths::migrate_legacy_files();
 
     let rt = tokio::runtime::Builder::new_multi_thread()
         .worker_threads(2)

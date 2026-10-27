@@ -15,7 +15,14 @@ use crate::error::{ApiError, Result};
 /// (те же значения использует спецификация сообщества).
 pub const CLIENT_ID: &str = "23cabbbdc6cd418abb4b39c32c41195d";
 /// Секрет приложения.
-pub const CLIENT_SECRET: &str = "53bc75238f0c4d08a118a51fe9203300";
+///
+/// РЕГРЕССИЯ 0.0.1a–0.0.1c: в секрете была опечатка — `…118a51f…`
+/// вместо `…118e51f…`. Яндекс на любой grant type отвечал
+/// `invalid_client: Wrong client secret`, поэтому вход не работал вовсе
+/// (и в песочнице, и у пользователей из РФ — гео-блок был ни при чём).
+/// Значение сверено с MarshalX/yandex-music-api и живым запросом
+/// к `oauth.yandex.ru` (исправленный секрет даёт `authorization_pending`).
+pub const CLIENT_SECRET: &str = "53bc75238f0c4d08a118e51fe9203300";
 
 /// Ответ `POST /device/code`.
 ///
@@ -84,6 +91,36 @@ impl PollOutcome {
     }
 }
 
+/// Человекочитаемая ошибка OAuth: статус + `error: error_description`.
+///
+/// Яндекс кладёт описание прямо в JSON (например,
+/// `invalid_client: Wrong client secret`) — показываем его целиком:
+/// оно попадает и на экран ошибки, и в журнал.
+pub(crate) fn oauth_error(status: reqwest::StatusCode, text: &str) -> String {
+    let parsed = serde_json::from_str::<Value>(text).ok().and_then(|v| {
+        let err = v.get("error").and_then(|e| e.as_str());
+        let desc = v.get("error_description").and_then(|d| d.as_str());
+        match (err, desc) {
+            (Some(e), Some(d)) => Some(format!("{e}: {d}")),
+            (Some(e), None) => Some(e.to_string()),
+            _ => None,
+        }
+    });
+    match parsed {
+        Some(msg) => format!("{status} {msg}"),
+        // Не-JSON тело (HTML прокси, пусто) — урезаем для читаемости.
+        None => format!("{status} {}", truncate_chars(text, 256)),
+    }
+}
+
+/// Урезает строку до `n` символов, не разрывая UTF-8.
+pub(crate) fn truncate_chars(s: &str, n: usize) -> &str {
+    match s.char_indices().nth(n) {
+        Some((i, _)) => &s[..i],
+        None => s,
+    }
+}
+
 /// Запрашивает код устройства.
 ///
 /// `device_id` — случайная строка (генерируется приложением),
@@ -105,9 +142,7 @@ pub async fn request_device_code(
         .await?;
 
     if !status.is_success() {
-        return Err(ApiError::OAuth(format!(
-            "device code failed: {status} {text}"
-        )));
+        return Err(ApiError::OAuth(oauth_error(status, &text)));
     }
     serde_json::from_str(&text)
         .map_err(|e| ApiError::OAuth(format!("bad device code response: {e}")))
@@ -144,7 +179,18 @@ pub async fn poll_token(oauth: &OAuthClient, device_code: &str) -> Result<PollOu
             if let Some(outcome) = PollOutcome::from_error(err) {
                 return Ok(outcome);
             }
-            return Err(ApiError::OAuth(err.to_string()));
+            // Неизвестная ошибка OAuth — забираем и описание сервера:
+            // именно оно отличает «Wrong client secret» от сетевой заминки.
+            let desc = v
+                .get("error_description")
+                .and_then(|d| d.as_str())
+                .unwrap_or_default();
+            let msg = if desc.is_empty() {
+                err.to_string()
+            } else {
+                format!("{err}: {desc}")
+            };
+            return Err(ApiError::OAuth(msg));
         }
         return Err(ApiError::OAuth(format!("token poll failed: {status}")));
     }
@@ -182,5 +228,33 @@ mod tests {
         assert_eq!(PollOutcome::from_error("invalid_client"), None);
         assert_eq!(PollOutcome::from_error("server_error"), None);
         assert_eq!(PollOutcome::from_error(""), None);
+    }
+
+    /// Регрессия входа 0.0.1a–0.0.1c: одна опечатанная буква в секрете —
+    /// и любой grant type падает с `invalid_client: Wrong client secret`.
+    /// Эталон — креды официального Android-приложения из спецификации
+    /// сообщества (MarshalX/yandex-music-api, v3.2.2).
+    #[test]
+    fn client_credentials_are_exact() {
+        assert_eq!(CLIENT_ID, "23cabbbdc6cd418abb4b39c32c41195d");
+        assert_eq!(CLIENT_SECRET, "53bc75238f0c4d08a118e51fe9203300");
+    }
+
+    /// Ошибки OAuth несут описание сервера — его видно в UI и в журнале.
+    #[test]
+    fn oauth_errors_carry_description() {
+        let status = reqwest::StatusCode::BAD_REQUEST;
+        assert_eq!(
+            oauth_error(
+                status,
+                r#"{"error":"invalid_client","error_description":"Wrong client secret"}"#
+            ),
+            "400 Bad Request invalid_client: Wrong client secret"
+        );
+        assert_eq!(
+            oauth_error(status, r#"{"error":"server_error"}"#),
+            "400 Bad Request server_error"
+        );
+        assert!(oauth_error(status, "<html>proxy</html>").starts_with("400 Bad Request <html"));
     }
 }
