@@ -5,6 +5,60 @@
 
 ---
 
+## Сессия 7 — 2026-10-28: 0.0.1d — рабочий вход + журнал в папке установки
+
+**Задача:** пользователь: «Не работает. Сделай так чтобы писало логи в папку
+установки (да и вообще чтобы по минимуму писало что-либо на системный диск).
+Пока выдает ошибку invalid_client.»
+
+### Root cause invalid_client (вход не работал НИ У КОГО)
+
+Дифференциальные curl-пробы `oauth.yandex.ru` (scripts/oauth_probe.sh):
+`/device/code` с нашим client_id → 200 OK; `/token` → «Wrong client secret»
+на любом варианте передачи кредов; password grant с фейковым юзером → тоже
+«Wrong client secret» (значит секрет просто неверен); фейковый client_id →
+«Client not found» (другая ошибка). Сверка с MarshalX/yandex-music-api v3.2.2
+(склонирован в /home/z/my-project/marshalx-ref): **в CLIENT_SECRET была
+опечатка** — `…118a51f…` вместо `…118e51f…`, одна буква. Гео-блок ни при чём.
+Исправленный секрет даёт `authorization_pending` (живой опрос, HTTP 400 —
+норма RFC 8628). Гипотеза прошлой сессии о «гео-блоке песочницы» была
+ошибочной: песочница и пользователи из РФ получали одну и ту же ошибку.
+
+### Сделано
+
+- auth.rs: секрет исправлен, регресс-тест на точное значение кредов;
+  ошибки OAuth несут `error_description` (в UI видно «invalid_client:
+  Wrong client secret», а не голый код); client.rs логирует OAuth-запросы
+  (секрет маскируется `***`), heartbeat `authorization_pending` — на info.
+- auris-core/paths.rs (новый): портативные пути — всё рядом с exe
+  (`logs/ config/ data/ cache/ updates/`), fallback на каталог ОС при
+  read-only установке, `AURIS_DATA_DIR` для тестов/E2E, однократная
+  миграция старых config/tokens/history копированием, 6 юнит-тестов.
+- config/token/history/update переведены на paths; обновления качаются
+  в `updates/`, а не в temp ОС.
+- auris/logging.rs (новый): журнал `<папка установки>/logs/auris.log`,
+  ротация 2 МБ × 3 поколения (rename c remove_file — для Windows),
+  локальное время (chrono), эхо в консоль, уровень `AURIS_LOG`
+  (по умолчанию info). env_logger выпилен из зависимостей.
+- E2E (scripts/test_login_fix.py): 1) журнал создаётся рядом с
+  бинарником, миграция старого конфига сработала; 2) экран QR живёт
+  110+ с (раньше умирал ~65 с), в журнале 20× authorization_pending
+  и 0 invalid_client. VLM (vlm_check_login_fix2.mjs + склейка кадров):
+  QR/код на всех кадрах, отсчёт 4:56→3:18, ошибок и дефектов вёрстки нет.
+- Версия 0.0.1-beta.3 (отображение 0.0.1d), CHANGELOG, README
+  (раздел «Данные и журналы»), этот WORKLOG.
+
+### Грабли
+
+- `rg --glob '!target'` + `cargo check --workspace --all-targets` в одной
+  команде упёрлись в 7-минутный таймаут Bash-инструмента — тяжёлый чек
+  после fmt лучше гонять отдельным вызовом с запасом времени.
+- VLM через `zai.chat.completions.create` не принимает картинки —
+  нужен `createVision` (одна картинка за запрос; кадры склеили в полосу
+  PIL-скриптом stitch_login_fix.py).
+
+---
+
 ## Сессия 6 — 2026-10-28: 0.0.1c — «подключаем всё, что можно подключить»
 
 **Задача:** пользователь: «Делаем рабочую версию 0.0.1c (предрелизная).
@@ -278,4 +332,4 @@
 | Правовая позиция | Без обхода DRM; ссылки только из официального download-info; OAuth Device Flow с публичными кредами Android-приложения |
 | Канал обновлений | `releases/latest/download/latest.json`; схема — `auris-core::update::UpdateManifest` |
 | Ключевые файлы | `crates/auris-core/src/update.rs`, `crates/auris/src/update.rs`, `installer/auris.iss`, `installer/make_manifest.py`, `.github/workflows/ci.yml` |
-| Тег → версия | тег `v0.0.1b` ↔ Cargo `0.0.1-beta.1` ↔ отображение `0.0.1b` |
+| Тег → версия | тег `v0.0.1d` ↔ Cargo `0.0.1-beta.3` ↔ отображение `0.0.1d` |
