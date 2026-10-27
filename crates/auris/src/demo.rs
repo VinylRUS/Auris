@@ -172,6 +172,26 @@ pub fn fill(ui: &MainWindow) {
     ui.set_home_playlists(model(lib.clone()));
     ui.set_library_playlists(model(lib));
 
+    // ---- Библиотека: альбомы и исполнители ----
+    let albums: Vec<TileItem> = vec![
+        tile("Этажи", "Молчат Дома", 2, 3, 0, 4001),
+        tile("Побег", "ssshhhiiittt!", 4, 3, 0, 4002),
+        tile("Lopussa", "Kedr Livanskiy", 1, 3, 0, 4003),
+        tile("Сталь и шёлк", "Гречка", 6, 3, 0, 4004),
+        tile("Голгофа", "Дурной вкус", 8, 3, 0, 4005),
+        tile("Пыль", "Пасош", 10, 3, 0, 4006),
+    ];
+    let artists: Vec<TileItem> = vec![
+        tile("Молчат Дома", "Исполнитель", 3, 4, 0, 5001),
+        tile("ssshhhiiittt!", "Исполнитель", 5, 4, 0, 5002),
+        tile("Кино", "Исполнитель", 7, 4, 0, 5003),
+        tile("Гречка", "Исполнитель", 9, 4, 0, 5004),
+        tile("Дурной вкус", "Исполнитель", 1, 4, 0, 5005),
+        tile("Пасош", "Исполнитель", 6, 4, 0, 5006),
+    ];
+    ui.set_library_albums(model(albums));
+    ui.set_library_artists(model(artists));
+
     // ---- Открытый плейлист (библиотека) ----
     ui.set_playlist_open(false);
     ui.set_playlist_title("Дорога".into());

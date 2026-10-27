@@ -253,10 +253,15 @@ impl App {
             .users_playlists_list(uid)
             .await
             .map_err(|e| anyhow::anyhow!("playlists: {e}"))?;
-        let likes = client
-            .users_likes_tracks(uid)
-            .await
-            .map_err(|e| anyhow::anyhow!("likes: {e}"))?;
+        let (likes, likes_albums, likes_artists) = tokio::join!(
+            client.users_likes_tracks(uid),
+            client.users_likes_albums(uid),
+            client.users_likes_artists(uid)
+        );
+        let likes = likes.map_err(|e| anyhow::anyhow!("likes: {e}"))?;
+        // Лайки альбомов/исполнителей не критичны — при ошибке просто пустые.
+        let likes_albums = likes_albums.unwrap_or_default();
+        let likes_artists = likes_artists.unwrap_or_default();
 
         // Лайки: множество id
         {
@@ -271,6 +276,18 @@ impl App {
             if let Some(url) = pl.cover_url("300x300") {
                 let path = self.cache.cover(&url).await;
                 cov.playlist_covers.insert((pl.uid, pl.kind), path);
+            }
+        }
+        for la in &likes_albums {
+            if let Some(url) = la.album.cover_url("300x300") {
+                let path = self.cache.cover(&url).await;
+                cov.album_covers.insert(la.album.id, path);
+            }
+        }
+        for la in &likes_artists {
+            if let Some(url) = la.artist.cover.as_ref().and_then(|c| c.url("300x300")) {
+                let path = self.cache.cover(&url).await;
+                cov.artist_covers.insert(la.artist.id, path);
             }
         }
         {
@@ -288,6 +305,10 @@ impl App {
             .collect();
         let likes_count = likes.tracks.len();
         let recent: Vec<Track> = self.history.lock().expect("history").recent(4);
+        let albums_src: Vec<auris_api::Album> =
+            likes_albums.iter().map(|la| la.album.clone()).collect();
+        let artists_src: Vec<auris_api::Artist> =
+            likes_artists.iter().map(|la| la.artist.clone()).collect();
         let greeting = greeting_now();
         self.ui_inv(move |ui| {
             let generated: Vec<crate::TileItem> = generated_src
@@ -310,6 +331,20 @@ impl App {
             )));
             ui.set_library_playlists(slint::ModelRc::new(std::rc::Rc::new(
                 slint::VecModel::from(lib),
+            )));
+            let albums: Vec<crate::TileItem> = albums_src
+                .iter()
+                .map(|a| models::album_tile(a, &cov))
+                .collect();
+            let artists: Vec<crate::TileItem> = artists_src
+                .iter()
+                .map(|a| models::artist_tile(a, &cov))
+                .collect();
+            ui.set_library_albums(slint::ModelRc::new(std::rc::Rc::new(
+                slint::VecModel::from(albums),
+            )));
+            ui.set_library_artists(slint::ModelRc::new(std::rc::Rc::new(
+                slint::VecModel::from(artists),
             )));
             ui.set_home_recent(slint::ModelRc::new(std::rc::Rc::new(
                 slint::VecModel::from(history_tiles),
