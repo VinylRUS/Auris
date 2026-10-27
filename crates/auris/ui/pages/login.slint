@@ -1,6 +1,7 @@
 // Экран входа: QR + код подтверждения + ручная вставка токена.
 import { Theme } from "../theme.slint";
-import { ActionButton, Icon, SearchField } from "../widgets.slint";
+import { Icons, Icon } from "../icons.slint";
+import { ActionButton, SearchField } from "../widgets.slint";
 
 export component LoginPage inherits Rectangle {
     // 0 — старт, 1 — ждём подтверждения, 2 — ошибка
@@ -14,18 +15,21 @@ export component LoginPage inherits Rectangle {
     callback open-browser();
     callback paste-token(string);
 
-    background: Theme.bg;
+    background: @linear-gradient(160deg, #1E242B, Theme.bg 55%);
     VerticalLayout {
         alignment: center;
         HorizontalLayout {
             alignment: center;
             Rectangle {
                 width: 460px;
-                height: 560px;
-                border-radius: Theme.r-card;
+                height: 580px;
+                border-radius: 12px;
                 background: Theme.card;
                 border-width: 1px;
                 border-color: Theme.stroke;
+                drop-shadow-blur: 40px;
+                drop-shadow-offset-y: 14px;
+                drop-shadow-color: #66000000;
 
                 VerticalLayout {
                     alignment: center;
@@ -37,10 +41,16 @@ export component LoginPage inherits Rectangle {
                         width: 64px; height: 64px;
                         border-radius: 18px;
                         background: @linear-gradient(135deg, Theme.accent-deep, Theme.accent);
+                        x: (parent.width - self.width) / 2;
+                        drop-shadow-blur: 18px;
+                        drop-shadow-offset-y: 6px;
+                        drop-shadow-color: #4D0067C0;
                         Icon {
-                            text: "\u{266B}";
-                            font-size: 30px;
-                            color: Theme.text-on-accent;
+                            x: (parent.width - self.width) / 2;
+                            y: (parent.height - self.height) / 2;
+                            source: Icons.eq;
+                            size: 34px;
+                            tint: Theme.text-on-accent;
                         }
                     }
                     Text {
@@ -79,8 +89,8 @@ export component LoginPage inherits Rectangle {
                         Rectangle { height: 6px; }
                         ActionButton {
                             label: "Получить код";
+                            icon: Icons.chevron-right;
                             accent: true;
-                            primary-glyph: false;
                             width: 220px;
                             x: (parent.width - self.width) / 2;
                             clicked => { root.start(); }
@@ -109,6 +119,9 @@ export component LoginPage inherits Rectangle {
                             x: (parent.width - self.width) / 2;
                             border-radius: 8px;
                             background: #FFFFFF;
+                            drop-shadow-blur: 16px;
+                            drop-shadow-offset-y: 5px;
+                            drop-shadow-color: #40000000;
                             if root.qr-image.width > 0: Image {
                                 source: root.qr-image;
                                 width: 170px; height: 170px;
@@ -134,8 +147,8 @@ export component LoginPage inherits Rectangle {
                         }
                         ActionButton {
                             label: "Открыть в браузере";
+                            icon: Icons.external;
                             accent: true;
-                            primary-glyph: false;
                             width: 220px;
                             x: (parent.width - self.width) / 2;
                             clicked => { root.open-browser(); }
@@ -167,8 +180,8 @@ export component LoginPage inherits Rectangle {
                         }
                         ActionButton {
                             label: "Повторить";
+                            icon: Icons.play;
                             accent: true;
-                            primary-glyph: false;
                             width: 220px;
                             x: (parent.width - self.width) / 2;
                             clicked => { root.start(); }

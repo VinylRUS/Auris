@@ -1,5 +1,6 @@
 // Скачанное: список загрузок и их статусы.
 import { Theme } from "../theme.slint";
+import { Icons, Icon } from "../icons.slint";
 import { TrackRow } from "../widgets.slint";
 import { TrackItem } from "../structs.slint";
 
@@ -49,6 +50,7 @@ export component DownloadsPage inherits Rectangle {
             content-height: 40px + 52px * root.items.length;
 
             VerticalLayout {
+                alignment: start;
                 spacing: 2px;
                 for item[i] in root.items: TrackRow {
                     index: i + 1;
@@ -66,13 +68,32 @@ export component DownloadsPage inherits Rectangle {
                     like-toggled => { }
                     download-clicked => { }
                 }
-                if root.items.length == 0: Text {
-                    text: "Нажмите \u{21D3} на треке в поиске или плейлисте — он появится здесь";
-                    font-size: 13px;
-                    color: Theme.text-3;
-                    horizontal-alignment: center;
-                    vertical-alignment: center;
-                    height: 120px;
+                if root.items.length == 0: VerticalLayout {
+                    alignment: center;
+                    spacing: 14px;
+                    height: 200px;
+                    Rectangle {
+                        width: 72px; height: 72px;
+                        border-radius: 36px;
+                        background: Theme.fill;
+                        border-width: 1px;
+                        border-color: Theme.stroke;
+                        x: (parent.width - self.width) / 2;
+                        Icon {
+                            source: Icons.download;
+                            size: 30px;
+                            tint: Theme.text-3;
+                            x: (parent.width - self.width) / 2;
+                            y: (parent.height - self.height) / 2;
+                        }
+                    }
+                    Text {
+                        text: "Нажмите на иконку загрузки у трека в поиске или плейлисте — он появится здесь";
+                        font-size: 13px;
+                        color: Theme.text-3;
+                        horizontal-alignment: center;
+                        wrap: word-wrap;
+                    }
                 }
             }
         }

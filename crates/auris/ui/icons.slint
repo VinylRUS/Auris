@@ -1,0 +1,95 @@
+// Векторные иконки Auris.
+// SVG 24×24, белая краска — тонировка в цвет через Image.colorize.
+// Набор сгенерирован scripts/gen_ui_icons.py (Fluent-подобный стиль, round caps).
+import { Theme } from "theme.slint";
+
+export global Icons {
+    // Навигация
+    out property <image> home: @image-url("icons/home.svg");
+    out property <image> wave: @image-url("icons/wave.svg");
+    out property <image> radio: @image-url("icons/radio.svg");
+    out property <image> library: @image-url("icons/library.svg");
+    out property <image> download: @image-url("icons/download.svg");
+    out property <image> settings: @image-url("icons/settings.svg");
+
+    // Плеер
+    out property <image> play: @image-url("icons/play.svg");
+    out property <image> pause: @image-url("icons/pause.svg");
+    out property <image> prev: @image-url("icons/prev.svg");
+    out property <image> next: @image-url("icons/next.svg");
+    out property <image> shuffle: @image-url("icons/shuffle.svg");
+    out property <image> repeat: @image-url("icons/repeat.svg");
+    out property <image> repeat-one: @image-url("icons/repeat-one.svg");
+    out property <image> heart: @image-url("icons/heart.svg");
+    out property <image> heart-filled: @image-url("icons/heart-filled.svg");
+    out property <image> volume-0: @image-url("icons/volume-0.svg");
+    out property <image> volume-1: @image-url("icons/volume-1.svg");
+    out property <image> volume-2: @image-url("icons/volume-2.svg");
+    out property <image> queue: @image-url("icons/queue.svg");
+    out property <image> note: @image-url("icons/note.svg");
+
+    // Окно (Win11 caption)
+    out property <image> win-minimize: @image-url("icons/win-minimize.svg");
+    out property <image> win-maximize: @image-url("icons/win-maximize.svg");
+    out property <image> win-restore: @image-url("icons/win-restore.svg");
+    out property <image> win-close: @image-url("icons/win-close.svg");
+
+    // Прочее
+    out property <image> search: @image-url("icons/search.svg");
+    out property <image> close: @image-url("icons/close.svg");
+    out property <image> check: @image-url("icons/check.svg");
+    out property <image> error: @image-url("icons/error.svg");
+    out property <image> chevron-down: @image-url("icons/chevron-down.svg");
+    out property <image> chevron-right: @image-url("icons/chevron-right.svg");
+    out property <image> chevron-left: @image-url("icons/chevron-left.svg");
+    out property <image> arrow-left: @image-url("icons/arrow-left.svg");
+    out property <image> external: @image-url("icons/external.svg");
+
+    // Логотип-марка (эквалайзер, как у иконки приложения)
+    out property <image> eq: @image-url("icons/eq.svg");
+}
+
+// ---------- Иконка ----------
+export component Icon inherits Image {
+    in property <length> size: 16px;
+    in property <color> tint: Theme.text-2;
+    width: size;
+    height: size;
+    image-fit: contain;
+    colorize: tint;
+}
+
+// ---------- Столбик эквалайзера (бесконечная анимация) ----------
+component EqBar inherits Rectangle {
+    in property <duration> dur: 900ms;
+    in property <duration> del: 0ms;
+    in property <length> lo: 3.5px;
+    in property <length> hi: 13px;
+    in property <color> bar-color: Theme.accent;
+    width: 3px;
+    border-radius: 1.5px;
+    background: bar-color;
+
+    property <bool> running: false;
+    init => { running = true; }
+    height: running ? hi : lo;
+    animate height {
+        duration: dur;
+        delay: del;
+        iteration-count: -1;
+        direction: alternate;
+        easing: ease-in-out;
+    }
+}
+
+// ---------- Анимированный эквалайзер (3 столбика) ----------
+// Создаётся только для играющего трека (if ...) — при удалении анимация останавливается.
+export component EqBars inherits Rectangle {
+    in property <color> tint: Theme.accent;
+    width: 16px;
+    height: 15px;
+
+    EqBar { x: 0px;   y: 15px - self.height; dur: 860ms;  bar-color: root.tint; }
+    EqBar { x: 6.5px; y: 15px - self.height; dur: 1120ms; del: 160ms; hi: 15px; bar-color: root.tint; }
+    EqBar { x: 13px;  y: 15px - self.height; dur: 980ms;  del: 320ms; bar-color: root.tint; }
+}

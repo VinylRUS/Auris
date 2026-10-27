@@ -1,6 +1,7 @@
 // «Моя волна»: большой хиро, лайк/дизлайк, ближайшие треки.
 import { Theme } from "../theme.slint";
-import { ActionButton, Cover, IconButton, PlayButton, Icon, TrackRow } from "../widgets.slint";
+import { Icons, Icon, EqBars } from "../icons.slint";
+import { ActionButton, Cover, IconButton, PlayButton, TrackRow } from "../widgets.slint";
 import { TrackItem } from "../structs.slint";
 
 export component WavePage inherits Rectangle {
@@ -33,8 +34,9 @@ export component WavePage inherits Rectangle {
 
         Flickable {
             vertical-stretch: 1;
-            content-height: 460px;
+            content-height: 480px + 52px * root.upcoming.length;
             VerticalLayout {
+                alignment: start;
                 spacing: 0;
 
                 // ---- Хиро ----
@@ -44,7 +46,9 @@ export component WavePage inherits Rectangle {
                     background: @linear-gradient(115deg, Theme.accent-fill, transparent 70%);
 
                     Path {
-                        x: parent.width - 460px;
+                        property <length> dx: 0px;
+                        init => { dx = 40px; }
+                        x: parent.width - 460px + self.dx;
                         y: 20px;
                         width: 440px; height: 180px;
                         viewbox-width: 440; viewbox-height: 180;
@@ -52,10 +56,13 @@ export component WavePage inherits Rectangle {
                         stroke-width: 2px;
                         fill: transparent;
                         opacity: 0.55;
+                        animate dx { duration: 6000ms; iteration-count: -1; direction: alternate; easing: ease-in-out; }
                         commands: "M 0 100 Q 55 20 110 100 T 220 100 T 330 100 T 440 100";
                     }
                     Path {
-                        x: parent.width - 460px;
+                        property <length> dx: 40px;
+                        init => { dx = 0px; }
+                        x: parent.width - 460px + self.dx;
                         y: 20px;
                         width: 440px; height: 180px;
                         viewbox-width: 440; viewbox-height: 180;
@@ -63,6 +70,7 @@ export component WavePage inherits Rectangle {
                         stroke-width: 1.6px;
                         fill: transparent;
                         opacity: 0.3;
+                        animate dx { duration: 7300ms; iteration-count: -1; direction: alternate; easing: ease-in-out; }
                         commands: "M 0 130 Q 55 70 110 130 T 220 130 T 330 130 T 440 130";
                     }
 
@@ -83,21 +91,31 @@ export component WavePage inherits Rectangle {
                             border-width: 1px;
                             border-color: Theme.stroke;
                             Icon {
-                                text: "\u{223F}";
-                                font-size: 54px;
-                                color: Theme.text-3;
+                                source: Icons.wave;
+                                size: 64px;
+                                tint: Theme.text-3;
+                                x: (parent.width - self.width) / 2;
+                                y: (parent.height - self.height) / 2;
                             }
                         }
 
                         VerticalLayout {
                             alignment: center;
                             spacing: 8px;
-                            Text {
-                                text: root.active ? "ИГРАЕТ СЕЙЧАС" : "ПЕРСОНАЛЬНЫЙ ПОТОК";
-                                font-size: 11.5px;
-                                font-weight: 700;
-                                letter-spacing: 1.2px;
-                                color: Theme.accent;
+                            HorizontalLayout {
+                                spacing: 10px;
+                                alignment: start;
+                                if root.active && root.playing: EqBars {
+                                    y: (parent.height - self.height) / 2;
+                                }
+                                Text {
+                                    text: root.active ? "ИГРАЕТ СЕЙЧАС" : "ПЕРСОНАЛЬНЫЙ ПОТОК";
+                                    font-size: 11.5px;
+                                    font-weight: 700;
+                                    letter-spacing: 1.2px;
+                                    color: Theme.accent;
+                                    vertical-alignment: center;
+                                }
                             }
                             Text {
                                 text: root.active ? root.title : "Моя волна";
@@ -119,20 +137,21 @@ export component WavePage inherits Rectangle {
                                 spacing: 10px;
                                 alignment: start;
                                 if root.active: IconButton {
-                                    glyph: root.liked ? "\u{2665}" : "\u{2661}";
+                                    source: root.liked ? Icons.heart-filled : Icons.heart;
                                     on: root.liked;
-                                    glyph-size: 19px;
-                                    size: 36px;
+                                    icon-size: 20px;
+                                    size: 38px;
                                     clicked => { root.like(); }
                                 }
                                 if root.active: IconButton {
-                                    glyph: "\u{2715}";
-                                    glyph-size: 14px;
-                                    size: 36px;
+                                    source: Icons.error;
+                                    icon-size: 18px;
+                                    size: 38px;
                                     clicked => { root.dislike(); }
                                 }
                                 if !root.active: ActionButton {
                                     label: "Слушать волну";
+                                    icon: Icons.play;
                                     accent: true;
                                     height: 38px;
                                     clicked => { root.start-wave(); }
@@ -144,9 +163,9 @@ export component WavePage inherits Rectangle {
                                 }
                                 if root.active: ActionButton {
                                     label: "Следующий";
-                                    primary-glyph: false;
+                                    icon: Icons.next;
                                     height: 38px;
-                                    y: 4px;
+                                    y: 3px;
                                     clicked => { root.next(); }
                                 }
                             }
@@ -155,26 +174,29 @@ export component WavePage inherits Rectangle {
                 }
 
                 // ---- Ближайшие треки ----
-                if root.upcoming.length > 0: Text {
-                    text: "Дальше в волне";
-                    font-size: 16px;
-                    font-weight: 700;
-                    color: Theme.text;
-                }
-                for item[i] in root.upcoming: TrackRow {
-                    index: i + 1;
-                    title: item.title;
-                    artists: item.artists;
-                    album: item.album;
-                    duration-sec: item.duration-sec;
-                    cover-image: item.cover;
-                    cover-variant: item.cover-variant;
-                    liked: item.liked;
-                    is-current: item.is-current;
-                    is-playing: item.is-playing;
-                    clicked => { root.play-index(i); }
-                    like-toggled => { root.like-toggled(i); }
-                    download-clicked => { }
+                if root.upcoming.length > 0: VerticalLayout {
+                    spacing: 10px;
+                    Text {
+                        text: "Дальше в волне";
+                        font-size: 16px;
+                        font-weight: 700;
+                        color: Theme.text;
+                    }
+                    for item[i] in root.upcoming: TrackRow {
+                        index: i + 1;
+                        title: item.title;
+                        artists: item.artists;
+                        album: item.album;
+                        duration-sec: item.duration-sec;
+                        cover-image: item.cover;
+                        cover-variant: item.cover-variant;
+                        liked: item.liked;
+                        is-current: item.is-current;
+                        is-playing: item.is-playing;
+                        clicked => { root.play-index(i); }
+                        like-toggled => { root.like-toggled(i); }
+                        download-clicked => { }
+                    }
                 }
                 Rectangle { height: 12px; }
             }

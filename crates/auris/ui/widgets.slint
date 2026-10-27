@@ -1,5 +1,7 @@
 // Базовые виджеты Auris (Fluent-стиль по мокапам).
+// Все иконки — векторные SVG (icons.slint), тонируются colorize.
 import { Theme } from "theme.slint";
+import { Icons, Icon, EqBars } from "icons.slint";
 
 // ---------- Градиентная заглушка обложки ----------
 export component GradientCover inherits Rectangle {
@@ -17,12 +19,12 @@ export component GradientCover inherits Rectangle {
     if variant == 10: Rectangle { background: @linear-gradient(135deg, #334155, #0F172A); }
 
     // нота-заглушка
-    Rectangle {
-        width: 38%; height: 38%;
+    Icon {
+        source: Icons.note;
+        size: min(parent.width, parent.height) * 0.4;
+        tint: rgba(255, 255, 255, 0.35);
         x: (parent.width - self.width) / 2;
         y: (parent.height - self.height) / 2;
-        border-radius: self.width / 2;
-        background: rgba(255, 255, 255, 0.28);
     }
 }
 
@@ -42,56 +44,34 @@ export component Cover inherits Rectangle {
     if cover-image.width == 0: GradientCover { variant: cover-variant; }
 }
 
-// ---------- Иконка (векторный глиф из текста) ----------
-// Slint не тянет иконочные шрифты: используем простые unicode-глифы,
-// которые есть в системных шрифтах всех платформ.
-export component Icon inherits Text {
-    font-size: 15px;
-    vertical-alignment: center;
-    horizontal-alignment: center;
-}
-
-// ---------- Иконка-лупа (рисуем фигурами: глифа в шрифтах нет) ----------
-export component MagnifierIcon inherits Rectangle {
-    in property <length> size: 15px;
-    in property <color> stroke-color: Theme.text-3;
-    width: size; height: size;
-    Rectangle {
-        width: root.size * 0.62; height: root.size * 0.62;
-        border-radius: self.width / 2;
-        border-width: 1.6px;
-        border-color: root.stroke-color;
-    }
-    Rectangle {
-        width: 1.8px; height: root.size * 0.38;
-        x: root.size * 0.72;
-        y: root.size * 0.66;
-        transform-rotation: 45deg;
-        background: root.stroke-color;
-    }
-}
-
 // ---------- Кнопка-иконка ----------
 export component IconButton inherits Rectangle {
-    in property <string> glyph;
-    in property <bool> on: false;          // акцентное состояние
-    in property <length> size: 32px;
-    in property <length> glyph-size: 15px;
+    in property <image> source;             // иконка (Icons.*)
+    in property <bool> on: false;           // акцентное состояние
+    in property <length> size: 32px;        // размер кнопки
+    in property <length> icon-size: 16px;   // размер иконки
+    in property <bool> interactive: true;   // false — декоративная (не кликается)
     callback clicked;
 
     width: size; height: size;
     border-radius: Theme.r-ctl;
-    background: ta.has-hover ? Theme.fill-hover : transparent;
+    background: ta.pressed ? Theme.fill-hover
+              : ta.has-hover ? Theme.fill : transparent;
+    animate background { duration: 90ms; }
 
     ta := TouchArea {
+        enabled: root.interactive;
         clicked => { root.clicked(); }
         mouse-cursor: pointer;
     }
     Icon {
-        text: root.glyph;
-        font-size: root.glyph-size;
-        color: root.on ? Theme.accent
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        source: root.source;
+        size: root.icon-size;
+        tint: root.on ? Theme.accent
               : ta.has-hover ? Theme.text : Theme.text-3;
+        animate tint { duration: 100ms; }
     }
 }
 
@@ -103,44 +83,57 @@ export component PlayButton inherits Rectangle {
 
     width: size; height: size;
     border-radius: size / 2;
-    background: Theme.accent-deep;
+    background: ta.has-hover ? Theme.accent : Theme.accent-deep;
+    animate background { duration: 130ms; }
+
+    transform-scale-x: ta.pressed ? 94% : ta.has-hover ? 106% : 100%;
+    transform-scale-y: ta.pressed ? 94% : ta.has-hover ? 106% : 100%;
+    animate transform-scale-x { duration: 110ms; easing: ease-out; }
+    animate transform-scale-y { duration: 110ms; easing: ease-out; }
 
     ta := TouchArea {
         clicked => { root.clicked(); }
         mouse-cursor: pointer;
     }
     Icon {
-        text: root.playing ? "\u{2016}" : "\u{25B6}";   // ‖ / ▶
-        font-size: root.size * 0.4;
-        color: Theme.text-on-accent;
+        x: (parent.width - self.width) / 2 + (root.playing ? 0px : 1px);
+        y: (parent.height - self.height) / 2;
+        source: root.playing ? Icons.pause : Icons.play;
+        size: root.size * 0.42;
+        tint: Theme.text-on-accent;
     }
 }
 
-// ---------- Кнопка ----------
+// ---------- Кнопка с текстом (и опциональной иконкой) ----------
 export component ActionButton inherits Rectangle {
     in property <string> label;
     in property <bool> accent: false;
-    in property <bool> primary-glyph: true;
+    in property <image> icon;               // опционально: Icons.play и т.п.
     callback clicked;
 
     height: 34px;
     border-radius: Theme.r-ctl;
-    background: accent ? Theme.accent-deep : (ta.has-hover ? Theme.fill-hover : Theme.fill);
+    background: accent
+        ? (ta.pressed ? Theme.accent-deep : ta.has-hover ? Theme.accent : Theme.accent-deep)
+        : (ta.pressed ? Theme.fill-hover : ta.has-hover ? Theme.fill-hover : Theme.fill);
     border-width: accent ? 0px : 1px;
     border-color: Theme.stroke-strong;
+    animate background { duration: 100ms; }
 
     HorizontalLayout {
         padding-left: 16px; padding-right: 16px;
         spacing: 8px;
         alignment: center;
-        if primary-glyph: Icon {
-            text: "\u{25B6}";
-            font-size: 11px;
-            color: accent ? Theme.text-on-accent : Theme.text-2;
+        if root.icon.width > 0: Icon {
+            source: root.icon;
+            size: 14px;
+            tint: accent ? Theme.text-on-accent : Theme.text-2;
+            y: (parent.height - self.height) / 2;
         }
         Text {
             text: label;
             font-size: 13.5px;
+            font-weight: accent ? 600 : 400;
             vertical-alignment: center;
             color: accent ? Theme.text-on-accent : Theme.text;
         }
@@ -162,12 +155,15 @@ export component Chip inherits Rectangle {
     background: active ? Theme.accent-fill : (ta.has-hover ? Theme.fill-hover : Theme.fill);
     border-width: 1px;
     border-color: active ? Theme.accent : Theme.stroke;
+    animate background { duration: 100ms; }
+    animate border-color { duration: 100ms; }
 
     HorizontalLayout {
         padding-left: 14px; padding-right: 14px;
         Text {
             text: label;
             font-size: 13px;
+            font-weight: active ? 600 : 400;
             vertical-alignment: center;
             color: active ? Theme.text-on-accent-fill : Theme.text-2;
         }
@@ -178,38 +174,45 @@ export component Chip inherits Rectangle {
     }
 }
 
-// ---------- Слайдер (прогресс/громкость) ----------
+// ---------- Слайдер (прогресс/громкость, Fluent) ----------
 export component SliderBar inherits Rectangle {
-    in-out property <float> value: 0;      // 0..1
-    in property <bool> thick-thumb: true;  // Fluent-точка
+    in-out property <float> value: 0;         // 0..1
+    in property <bool> thumb-always: true;    // точка видна всегда (громкость)
     callback changed(float);
 
-    width: 18px;                          // зона захвата
-    border-radius: self.height / 2;
+    width: 18px;                              // зона захвата
+    property <bool> hot: ta.has-hover || ta.pressed;
 
-    // дорожка
+    // дорожка (утолщается при наведении)
     Rectangle {
-        y: (parent.height - 4px) / 2;
-        height: 4px;
-        border-radius: 2px;
+        y: (parent.height - (root.hot ? 6px : 4px)) / 2;
+        height: root.hot ? 6px : 4px;
+        border-radius: self.height / 2;
         background: Theme.stroke-strong;
+        animate height { duration: 90ms; }
+        animate y { duration: 90ms; }
 
         Rectangle {
             width: parent.width * clamp(root.value, 0, 1);
-            border-radius: 2px;
+            border-radius: parent.height / 2;
             background: Theme.accent;
         }
     }
+
     // бегунок
     Rectangle {
         x: parent.width * clamp(root.value, 0, 1) - self.width / 2;
-        y: (parent.height - (root.thick-thumb ? 12px : 8px)) / 2;
-        width: root.thick-thumb ? 12px : 8px;
-        height: root.thick-thumb ? 12px : 8px;
+        y: (parent.height - self.height) / 2;
+        width: root.hot ? 13px : 11px;
+        height: self.width;
         border-radius: self.width / 2;
         background: Theme.accent;
-        border-width: root.thick-thumb ? 3px : 0px;
+        border-width: 3px;
         border-color: Theme.bg-deep;
+        opacity: root.thumb-always || root.hot ? 1 : 0;
+        animate opacity { duration: 120ms; }
+        animate width { duration: 90ms; }
+        animate height { duration: 90ms; }
     }
 
     ta := TouchArea {
@@ -258,7 +261,7 @@ export component SectionHead inherits HorizontalLayout {
     }
 }
 
-// ---------- Карточка-плитка (обложка + подписи) ----------
+// ---------- Карточка-плитка (обложка + подписи + play при наведении) ----------
 export component TileCard inherits Rectangle {
     in property <string> title;
     in property <string> subtitle;
@@ -268,7 +271,7 @@ export component TileCard inherits Rectangle {
     callback clicked;
 
     width: tile-size;
-    height: tile-size + 42px;
+    height: tile-size + 44px;
 
     VerticalLayout {
         spacing: 0;
@@ -282,10 +285,11 @@ export component TileCard inherits Rectangle {
         Text {
             text: root.title;
             font-size: 13.5px;
+            font-weight: 500;
             color: Theme.text;
             overflow: elide;
             vertical-alignment: center;
-            height: 22px;
+            height: 24px;
         }
         Text {
             text: root.subtitle;
@@ -296,6 +300,36 @@ export component TileCard inherits Rectangle {
             height: 18px;
         }
     }
+
+    // Затемнение + круглая play-кнопка при наведении
+    Rectangle {
+        y: 0;
+        width: root.tile-size;
+        height: root.tile-size;
+        border-radius: 8px;
+        background: Theme.fill-hover;
+        opacity: ta.has-hover ? 1 : 0;
+        animate opacity { duration: 150ms; }
+
+        Rectangle {
+            width: 46px; height: 46px;
+            border-radius: 23px;
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            background: Theme.accent-deep;
+            drop-shadow-blur: 14px;
+            drop-shadow-offset-y: 4px;
+            drop-shadow-color: #4D000000;
+            Icon {
+                x: (parent.width - self.width) / 2 + 1px;
+                y: (parent.height - self.height) / 2;
+                source: Icons.play;
+                size: 18px;
+                tint: Theme.text-on-accent;
+            }
+        }
+    }
+
     ta := TouchArea {
         mouse-cursor: pointer;
         clicked => { root.clicked(); }
@@ -321,7 +355,16 @@ export component TrackRow inherits Rectangle {
 
     height: 52px;
     border-radius: Theme.r-ctl;
+
+    // подсветка текущего трека
+    Rectangle {
+        border-radius: Theme.r-ctl;
+        background: Theme.accent;
+        opacity: root.is-current ? 0.06 : 0;
+        animate opacity { duration: 150ms; }
+    }
     background: ta.has-hover ? Theme.fill : transparent;
+    animate background { duration: 90ms; }
 
     ta := TouchArea {
         mouse-cursor: pointer;
@@ -335,10 +378,21 @@ export component TrackRow inherits Rectangle {
         // Индекс / эквалайзер
         Rectangle {
             width: 26px;
-            Text {
-                text: root.is-current ? (root.is-playing ? "\u{266B}" : "\u{25B6}") : root.index;
+            if root.is-current && root.is-playing: EqBars {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+            }
+            if root.is-current && !root.is-playing: Icon {
+                source: Icons.play;
+                size: 14px;
+                tint: Theme.accent;
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+            }
+            if !root.is-current: Text {
+                text: root.index;
                 font-size: 13px;
-                color: root.is-current ? Theme.accent : Theme.text-3;
+                color: Theme.text-3;
                 vertical-alignment: center;
                 horizontal-alignment: right;
                 width: 100%;
@@ -360,6 +414,7 @@ export component TrackRow inherits Rectangle {
             Text {
                 text: root.title;
                 font-size: 13.5px;
+                font-weight: root.is-current ? 600 : 400;
                 color: root.is-current ? Theme.accent : Theme.text;
                 overflow: elide;
             }
@@ -391,24 +446,30 @@ export component TrackRow inherits Rectangle {
             horizontal-alignment: right;
         }
 
-        // Действия: лайк + скачать
+        // Действия: лайк + скачать (проявляются при наведении)
         Rectangle {
             width: 76px;
+            property <bool> shown: ta.has-hover || root.liked || root.dl-state > 0;
+            opacity: self.shown ? 1 : 0;
+            animate opacity { duration: 130ms; }
             HorizontalLayout {
                 alignment: end;
                 spacing: 2px;
                 IconButton {
-                    glyph: root.liked ? "\u{2665}" : "\u{2661}";
+                    source: root.liked ? Icons.heart-filled : Icons.heart;
                     on: root.liked;
                     size: 28px;
-                    glyph-size: 14px;
+                    icon-size: 17px;
+                    interactive: ta.has-hover || root.liked;
                     clicked => { root.like-toggled(); }
                 }
                 IconButton {
-                    glyph: root.dl-state == 2 ? "\u{2713}" : root.dl-state == 3 ? "\u{2715}" : "\u{21D3}";
+                    source: root.dl-state == 2 ? Icons.check
+                          : root.dl-state == 3 ? Icons.error : Icons.download;
                     on: root.dl-state == 2;
                     size: 28px;
-                    glyph-size: 13px;
+                    icon-size: 16px;
+                    interactive: ta.has-hover || root.dl-state > 0;
                     clicked => { root.download-clicked(); }
                 }
             }
@@ -426,6 +487,7 @@ export component Toggle inherits Rectangle {
     background: checked ? Theme.accent-deep : Theme.fill;
     border-width: checked ? 0px : 1px;
     border-color: Theme.stroke-strong;
+    animate background { duration: 120ms; }
 
     Rectangle {
         x: root.checked ? parent.width - self.width - 4px : 4px;
@@ -452,13 +514,16 @@ export component SearchField inherits Rectangle {
     background: Theme.fill;
     border-width: 1px;
     border-color: input.has-focus ? Theme.accent : Theme.stroke;
+    animate border-color { duration: 100ms; }
 
     HorizontalLayout {
         padding-left: 12px; padding-right: 12px;
         spacing: 10px;
-        MagnifierIcon {
+        Icon {
+            source: Icons.search;
             size: 15px;
-            stroke-color: Theme.text-3;
+            tint: Theme.text-3;
+            y: (parent.height - self.height) / 2;
         }
         VerticalLayout {
             alignment: center;
@@ -477,9 +542,10 @@ export component SearchField inherits Rectangle {
             }
         }
         if root.text != "": IconButton {
-            glyph: "\u{2715}";
+            source: Icons.close;
             size: 24px;
-            glyph-size: 11px;
+            icon-size: 12px;
+            y: (parent.height - 24px) / 2;
             clicked => { root.text = ""; }
         }
     }

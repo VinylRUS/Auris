@@ -1,6 +1,7 @@
 // Поиск: поле, «лучший результат», таблица треков.
 import { Theme } from "../theme.slint";
-import { Cover, SearchField, TrackRow, ActionButton, Icon } from "../widgets.slint";
+import { Icons, Icon } from "../icons.slint";
+import { Cover, SearchField, TrackRow, ActionButton } from "../widgets.slint";
 import { BestItem, TrackItem } from "../structs.slint";
 
 export component SearchPage inherits Rectangle {
@@ -33,6 +34,22 @@ export component SearchPage inherits Rectangle {
         if !root.has-results && !root.searching: VerticalLayout {
             alignment: center;
             vertical-stretch: 1;
+            spacing: 14px;
+            Rectangle {
+                width: 72px; height: 72px;
+                border-radius: 36px;
+                background: Theme.fill;
+                border-width: 1px;
+                border-color: Theme.stroke;
+                x: (parent.width - self.width) / 2;
+                Icon {
+                    source: Icons.search;
+                    size: 30px;
+                    tint: Theme.text-3;
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                }
+            }
             Text {
                 text: "Найдите любимую музыку";
                 font-size: 18px;
@@ -64,6 +81,7 @@ export component SearchPage inherits Rectangle {
             content-height: 80px + 52px * root.tracks.length + 260px;
 
             VerticalLayout {
+                alignment: start;
                 spacing: 4px;
 
                 // ---- Лучший результат ----
@@ -109,6 +127,7 @@ export component SearchPage inherits Rectangle {
                         Rectangle { horizontal-stretch: 1; }
                         ActionButton {
                             label: "Слушать";
+                            icon: Icons.play;
                             accent: true;
                             y: (parent.height - 34px) / 2;
                             clicked => { root.play-best(); }

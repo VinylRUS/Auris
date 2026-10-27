@@ -1,6 +1,7 @@
 // Библиотека: сетка плейлистов + открытый плейлист (таблица треков).
 import { Theme } from "../theme.slint";
-import { ActionButton, SectionHead, TileCard, TrackRow } from "../widgets.slint";
+import { Icons, Icon } from "../icons.slint";
+import { ActionButton, IconButton, SectionHead, TileCard, TrackRow } from "../widgets.slint";
 import { TileItem, TrackItem } from "../structs.slint";
 
 export component LibraryPage inherits Rectangle {
@@ -26,24 +27,22 @@ export component LibraryPage inherits Rectangle {
         Flickable {
             vertical-stretch: 1;
             content-height: root.playlist-open
-                ? 120px + 52px * root.playlist-tracks.length
-                : 300px + root.playlists.length * 190px / 4;
+                ? 150px + 52px * root.playlist-tracks.length
+                : 280px;
 
             VerticalLayout {
+                alignment: start;
                 // ---- Открытый плейлист ----
                 if root.playlist-open: VerticalLayout {
-                    spacing: 6px;
+                    spacing: 8px;
                     HorizontalLayout {
-                        spacing: 16px;
-                        Text {
-                            text: "\u{2190}";
-                            font-size: 22px;
-                            color: Theme.accent;
-                            vertical-alignment: center;
-                            TouchArea {
-                                mouse-cursor: pointer;
-                                clicked => { root.close-playlist(); }
-                            }
+                        spacing: 12px;
+                        IconButton {
+                            source: Icons.arrow-left;
+                            size: 36px;
+                            icon-size: 18px;
+                            y: 2px;
+                            clicked => { root.close-playlist(); }
                         }
                         Text {
                             text: root.playlist-title;
@@ -59,11 +58,16 @@ export component LibraryPage inherits Rectangle {
                         font-size: 13px;
                         color: Theme.text-3;
                     }
-                    ActionButton {
-                        label: "Слушать";
-                        accent: true;
-                        clicked => { root.play-all(); }
+                    HorizontalLayout {
+                        spacing: 10px;
+                        ActionButton {
+                            label: "Слушать";
+                            icon: Icons.play;
+                            accent: true;
+                            clicked => { root.play-all(); }
+                        }
                     }
+                    Rectangle { height: 4px; }
                     for item[i] in root.playlist-tracks: TrackRow {
                         index: i + 1;
                         title: item.title;
@@ -85,17 +89,20 @@ export component LibraryPage inherits Rectangle {
 
                 // ---- Сетка плейлистов ----
                 if !root.playlist-open: VerticalLayout {
-                    spacing: 0;
-                    Text {
-                        text: "Библиотека";
-                        font-size: 24px;
-                        font-weight: 700;
-                        color: Theme.text;
-                    }
-                    Text {
-                        text: "Ваши плейлисты и любимые треки";
-                        font-size: 13px;
-                        color: Theme.text-3;
+                    spacing: 16px;
+                    VerticalLayout {
+                        spacing: 2px;
+                        Text {
+                            text: "Библиотека";
+                            font-size: 24px;
+                            font-weight: 700;
+                            color: Theme.text;
+                        }
+                        Text {
+                            text: "Ваши плейлисты и любимые треки";
+                            font-size: 13px;
+                            color: Theme.text-3;
+                        }
                     }
 
                     HorizontalLayout {

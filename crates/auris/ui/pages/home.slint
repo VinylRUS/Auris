@@ -1,6 +1,7 @@
 // Главная: волна-хиро, чипы, «недавно», «собрано для вас», плейлисты.
 import { Theme } from "../theme.slint";
-import { ActionButton, Chip, Icon, SectionHead, TileCard } from "../widgets.slint";
+import { Icons, Icon } from "../icons.slint";
+import { ActionButton, Chip, SectionHead, TileCard } from "../widgets.slint";
 import { TileItem } from "../structs.slint";
 
 export component HomePage inherits Rectangle {
@@ -24,33 +25,42 @@ export component HomePage inherits Rectangle {
 
         Flickable {
             vertical-stretch: 1;
-            content-height: 700px;
+            content-height: 96px
+                + (root.recent.length > 0 ? 240px : 72px)
+                + (root.generated.length > 0 ? 240px : 0px)
+                + 250px;
 
             VerticalLayout {
-                spacing: 0px;
+                alignment: start;
+                spacing: 16px;
 
-                Text {
-                    text: root.greeting;
-                    font-size: 24px;
-                    font-weight: 700;
-                    color: Theme.text;
-                }
-                Text {
-                    text: "Что послушаем сегодня?";
-                    font-size: 13px;
-                    color: Theme.text-3;
+                VerticalLayout {
+                    spacing: 2px;
+                    Text {
+                        text: root.greeting;
+                        font-size: 24px;
+                        font-weight: 700;
+                        color: Theme.text;
+                    }
+                    Text {
+                        text: "Что послушаем сегодня?";
+                        font-size: 13px;
+                        color: Theme.text-3;
+                    }
                 }
 
                 // ---- Hero: Моя волна ----
                 Rectangle {
-                    height: 148px;
+                    height: 152px;
                     border-radius: Theme.r-card;
                     clip: true;
                     background: @linear-gradient(105deg, Theme.accent-fill, #20202000 55%);
 
-                    // Декоративные волны
+                    // Декоративные волны (медленно «дышат»)
                     Path {
-                        x: parent.width - 400px;
+                        property <length> dx: 0px;
+                        init => { dx = 34px; }
+                        x: parent.width - 400px + self.dx;
                         y: (parent.height - 100px) / 2;
                         width: 380px; height: 100px;
                         viewbox-width: 380; viewbox-height: 100;
@@ -58,10 +68,13 @@ export component HomePage inherits Rectangle {
                         stroke-width: 1.6px;
                         fill: transparent;
                         opacity: 0.6;
+                        animate dx { duration: 5200ms; iteration-count: -1; direction: alternate; easing: ease-in-out; }
                         commands: "M 0 62 Q 33 16 66 62 T 132 62 T 198 62 T 264 62 T 330 62 T 396 62";
                     }
                     Path {
-                        x: parent.width - 400px;
+                        property <length> dx: 34px;
+                        init => { dx = 0px; }
+                        x: parent.width - 400px + self.dx;
                         y: (parent.height - 100px) / 2;
                         width: 380px; height: 100px;
                         viewbox-width: 380; viewbox-height: 100;
@@ -69,12 +82,14 @@ export component HomePage inherits Rectangle {
                         stroke-width: 1.6px;
                         fill: transparent;
                         opacity: 0.35;
+                        animate dx { duration: 6400ms; iteration-count: -1; direction: alternate; easing: ease-in-out; }
                         commands: "M 0 78 Q 33 40 66 78 T 132 78 T 198 78 T 264 78 T 330 78 T 396 78";
                     }
 
                     VerticalLayout {
                         padding: 26px;
                         alignment: center;
+                        spacing: 2px;
                         Text {
                             text: "ПЕРСОНАЛЬНЫЙ ПОТОК";
                             font-size: 11.5px;
@@ -93,10 +108,13 @@ export component HomePage inherits Rectangle {
                             font-size: 13px;
                             color: Theme.text-2;
                         }
+                        Rectangle { height: 8px; }
                         ActionButton {
                             label: "Слушать";
+                            icon: Icons.play;
                             accent: true;
                             height: 34px;
+                            width: 132px;
                             clicked => { root.play-wave(); }
                         }
                     }
@@ -112,63 +130,72 @@ export component HomePage inherits Rectangle {
                 }
 
                 // ---- Недавно слушали (история) ----
-                SectionHead {
-                    title: "Недавно слушали";
-                    link-text: root.recent.length > 0 ? "Очистить" : "";
-                    link-clicked => { }
-                }
-                if root.recent.length > 0: HorizontalLayout {
-                    spacing: 18px;
-                    for tile in root.recent: TileCard {
-                        title: tile.title;
-                        subtitle: tile.subtitle;
-                        cover-image: tile.cover;
-                        cover-variant: tile.cover-variant;
-                        clicked => { root.open-tile(tile); }
+                VerticalLayout {
+                    spacing: 10px;
+                    SectionHead {
+                        title: "Недавно слушали";
+                        link-text: root.recent.length > 0 ? "Очистить" : "";
+                        link-clicked => { }
                     }
-                }
-                if root.recent.length == 0: Text {
-                    text: "Здесь появится история прослушиваний";
-                    font-size: 13px;
-                    color: Theme.text-3;
+                    if root.recent.length > 0: HorizontalLayout {
+                        spacing: 18px;
+                        for tile in root.recent: TileCard {
+                            title: tile.title;
+                            subtitle: tile.subtitle;
+                            cover-image: tile.cover;
+                            cover-variant: tile.cover-variant;
+                            clicked => { root.open-tile(tile); }
+                        }
+                    }
+                    if root.recent.length == 0: Text {
+                        text: "Здесь появится история прослушиваний";
+                        font-size: 13px;
+                        color: Theme.text-3;
+                    }
                 }
 
                 // ---- Собрано для вас (лента) ----
-                if root.generated.length > 0: SectionHead {
-                    title: "Собрано для вас";
-                }
-                if root.generated.length > 0: HorizontalLayout {
-                    spacing: 18px;
-                    for tile in root.generated: TileCard {
-                        title: tile.title;
-                        subtitle: tile.subtitle;
-                        cover-image: tile.cover;
-                        cover-variant: tile.cover-variant;
-                        clicked => { root.open-tile(tile); }
+                if root.generated.length > 0: VerticalLayout {
+                    spacing: 10px;
+                    SectionHead {
+                        title: "Собрано для вас";
+                    }
+                    HorizontalLayout {
+                        spacing: 18px;
+                        for tile in root.generated: TileCard {
+                            title: tile.title;
+                            subtitle: tile.subtitle;
+                            cover-image: tile.cover;
+                            cover-variant: tile.cover-variant;
+                            clicked => { root.open-tile(tile); }
+                        }
                     }
                 }
 
                 // ---- Ваши плейлисты ----
-                SectionHead {
-                    title: "Ваши плейлисты";
-                }
-                if root.playlists.length > 0: HorizontalLayout {
-                    spacing: 18px;
-                    for tile in root.playlists: TileCard {
-                        title: tile.title;
-                        subtitle: tile.subtitle;
-                        cover-image: tile.cover;
-                        cover-variant: tile.cover-variant;
-                        clicked => { root.open-tile(tile); }
+                VerticalLayout {
+                    spacing: 10px;
+                    SectionHead {
+                        title: "Ваши плейлисты";
+                    }
+                    if root.playlists.length > 0: HorizontalLayout {
+                        spacing: 18px;
+                        for tile in root.playlists: TileCard {
+                            title: tile.title;
+                            subtitle: tile.subtitle;
+                            cover-image: tile.cover;
+                            cover-variant: tile.cover-variant;
+                            clicked => { root.open-tile(tile); }
+                        }
+                    }
+                    if root.playlists.length == 0: Text {
+                        text: "Плейлисты появятся после первого входа";
+                        font-size: 13px;
+                        color: Theme.text-3;
                     }
                 }
-                if root.playlists.length == 0: Text {
-                    text: "Плейлисты появятся после первого входа";
-                    font-size: 13px;
-                    color: Theme.text-3;
-                }
 
-                Rectangle { height: 12px; }
+                Rectangle { height: 8px; }
             }
         }
     }

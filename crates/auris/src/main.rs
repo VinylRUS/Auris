@@ -5,6 +5,7 @@
 mod app;
 mod bridge;
 mod callbacks;
+mod demo;
 mod media;
 mod models;
 mod playback;
@@ -48,10 +49,16 @@ fn main() -> anyhow::Result<()> {
     ));
 
     app::App::init(&app, &ui);
-    app.bootstrap();
 
-    // Тихая проверка обновлений в фоне.
-    update::startup_check(&app);
+    // Демо-режим UI: AURIS_UI_DEMO=1 — мок-данные без сети.
+    if std::env::var_os("AURIS_UI_DEMO").is_some() {
+        demo::fill(&ui);
+    } else {
+        app.bootstrap();
+
+        // Тихая проверка обновлений в фоне.
+        update::startup_check(&app);
+    }
 
     // Таймер опроса плеера (держим в main — Slint Timer не Send).
     let tick_app = Arc::clone(&app);

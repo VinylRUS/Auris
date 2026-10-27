@@ -1,22 +1,25 @@
 // Сайдбар (NavigationView по мокапу).
 import { Theme } from "theme.slint";
-import { MagnifierIcon, Icon } from "widgets.slint";
+import { Icons, Icon } from "icons.slint";
 
 export component NavItem inherits Rectangle {
-    in property <string> glyph;
+    in property <image> source;
     in property <string> label;
     in property <bool> active: false;
     callback clicked;
 
     height: 40px;
     border-radius: Theme.r-ctl;
-    background: active ? Theme.accent-fill : (ta.has-hover ? Theme.fill : transparent);
+    background: ta.pressed ? Theme.fill-hover
+              : active ? Theme.accent-fill
+              : ta.has-hover ? Theme.fill : transparent;
+    animate background { duration: 100ms; }
 
     // Индикатор слева
     Rectangle {
         x: -2px;
         width: 3px;
-        y: 10px; height: parent.height - 20px;
+        y: 11px; height: parent.height - 22px;
         border-radius: 2px;
         background: Theme.accent;
         visible: root.active;
@@ -26,15 +29,16 @@ export component NavItem inherits Rectangle {
         padding-left: 12px; padding-right: 12px;
         spacing: 14px;
         Icon {
-            text: root.glyph;
-            font-size: 16px;
-            color: root.active ? Theme.accent : Theme.text-3;
-            vertical-alignment: center;
+            source: root.source;
+            size: 18px;
+            tint: root.active ? Theme.accent : Theme.text-3;
+            animate tint { duration: 100ms; }
+            y: (parent.height - self.height) / 2;
         }
         Text {
             text: root.label;
             font-size: 14px;
-            font-weight: root.active ? 700 : 400;
+            font-weight: root.active ? 600 : 400;
             color: root.active ? Theme.text-on-accent-fill : Theme.text-2;
             vertical-alignment: center;
         }
@@ -70,18 +74,24 @@ export component SideBar inherits Rectangle {
         padding-bottom: 10px;
         spacing: 2px;
 
-        // Поиск
+        // Поиск (кнопка-переход на страницу поиска)
         Rectangle {
             height: 36px;
             border-radius: Theme.r-ctl;
-            background: Theme.fill;
+            background: sta.has-hover ? Theme.fill-hover : Theme.fill;
             border-width: 1px;
             border-color: Theme.stroke;
+            animate background { duration: 100ms; }
 
             HorizontalLayout {
                 padding-left: 12px; padding-right: 12px;
                 spacing: 10px;
-                MagnifierIcon { size: 14px; stroke-color: Theme.text-3; }
+                Icon {
+                    source: Icons.search;
+                    size: 15px;
+                    tint: Theme.text-3;
+                    y: (parent.height - self.height) / 2;
+                }
                 Text {
                     text: "Поиск";
                     font-size: 13.5px;
@@ -89,34 +99,37 @@ export component SideBar inherits Rectangle {
                     vertical-alignment: center;
                 }
             }
-            TouchArea {
+            sta := TouchArea {
                 mouse-cursor: pointer;
                 clicked => { root.navigate(1); }
             }
         }
 
-        NavItem { glyph: "\u{2302}"; label: "Главная"; active: page == 0; clicked => { root.navigate(0); } }
-        NavItem { glyph: "\u{223F}"; label: "Моя волна"; active: page == 4; clicked => { root.navigate(4); } }
-        NavItem { glyph: "\u{25C9}"; label: "Радио"; active: page == 6; clicked => { root.navigate(6); } }
+        NavItem { source: Icons.home;     label: "Главная";    active: page == 0; clicked => { root.navigate(0); } }
+        NavItem { source: Icons.wave;     label: "Моя волна";  active: page == 4; clicked => { root.navigate(4); } }
+        NavItem { source: Icons.radio;    label: "Радио";      active: page == 6; clicked => { root.navigate(6); } }
 
         Text {
             text: "КОЛЛЕКЦИЯ";
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
             color: Theme.text-3;
+            letter-spacing: 0.8px;
         }
 
-        NavItem { glyph: "\u{25A4}"; label: "Библиотека"; active: page == 2; clicked => { root.navigate(2); } }
-        NavItem { glyph: "\u{21D3}"; label: "Скачанное"; active: page == 3; clicked => { root.navigate(3); } }
+        NavItem { source: Icons.library;  label: "Библиотека"; active: page == 2; clicked => { root.navigate(2); } }
+        NavItem { source: Icons.download; label: "Скачанное";  active: page == 3; clicked => { root.navigate(3); } }
 
         Rectangle { vertical-stretch: 1; }
 
-        NavItem { glyph: "\u{2699}"; label: "Настройки"; active: page == 5; clicked => { root.navigate(5); } }
+        NavItem { source: Icons.settings; label: "Настройки";  active: page == 5; clicked => { root.navigate(5); } }
 
-        // Пользователь
+        // Пользователь (кликабельная карточка → настройки)
         Rectangle {
-            height: 44px;
+            height: 46px;
             border-radius: Theme.r-ctl;
+            background: uta.has-hover ? Theme.fill : transparent;
+            animate background { duration: 100ms; }
             HorizontalLayout {
                 padding-left: 10px; padding-right: 10px;
                 spacing: 12px;
@@ -148,6 +161,18 @@ export component SideBar inherits Rectangle {
                         overflow: elide;
                     }
                 }
+                Icon {
+                    source: Icons.chevron-right;
+                    size: 13px;
+                    tint: Theme.text-3;
+                    opacity: uta.has-hover ? 1 : 0;
+                    animate opacity { duration: 100ms; }
+                    y: (parent.height - self.height) / 2;
+                }
+            }
+            uta := TouchArea {
+                mouse-cursor: pointer;
+                clicked => { root.navigate(5); }
             }
         }
     }

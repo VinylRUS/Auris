@@ -1,6 +1,7 @@
 // Правая панель очереди (по мокапу).
 import { Theme } from "theme.slint";
-import { Cover, IconButton, Icon } from "widgets.slint";
+import { Icons, Icon, EqBars } from "icons.slint";
+import { Cover, IconButton } from "widgets.slint";
 import { TrackItem } from "structs.slint";
 
 export component QueuePanel inherits Rectangle {
@@ -8,6 +9,7 @@ export component QueuePanel inherits Rectangle {
     in property <string> source-label: "";
     callback play-index(int);
     callback remove-index(int);
+    callback close();
 
     width: 300px;
     background: rgba(255, 255, 255, 0.02);
@@ -25,11 +27,22 @@ export component QueuePanel inherits Rectangle {
         padding-right: 16px;
         spacing: 4px;
 
-        Text {
-            text: "Очередь";
-            font-size: 15px;
-            font-weight: 700;
-            color: Theme.text;
+        HorizontalLayout {
+            spacing: 8px;
+            Text {
+                text: "Очередь";
+                font-size: 15px;
+                font-weight: 700;
+                color: Theme.text;
+                vertical-alignment: center;
+            }
+            Rectangle { horizontal-stretch: 1; }
+            IconButton {
+                source: Icons.close;
+                size: 26px;
+                icon-size: 13px;
+                clicked => { root.close(); }
+            }
         }
         Text {
             text: root.source-label;
@@ -43,6 +56,7 @@ export component QueuePanel inherits Rectangle {
             vertical-stretch: 1;
             content-height: 64px + 44px * root.items.length + 16px;
             VerticalLayout {
+                alignment: start;
                 padding: 0;
                 spacing: 2px;
 
@@ -51,9 +65,9 @@ export component QueuePanel inherits Rectangle {
                     visible: item.is-current;
                     height: 64px;
                     border-radius: Theme.r-card;
-                    background: Theme.fill;
+                    background: Theme.accent.with-alpha(0.07);
                     border-width: 1px;
-                    border-color: Theme.stroke;
+                    border-color: Theme.accent.with-alpha(0.25);
                     HorizontalLayout {
                         padding: 10px;
                         spacing: 12px;
@@ -78,10 +92,8 @@ export component QueuePanel inherits Rectangle {
                                 color: Theme.accent;
                             }
                         }
-                        Icon {
-                            text: "\u{266B}";
-                            color: Theme.accent;
-                            font-size: 15px;
+                        if item.is-playing: EqBars {
+                            y: (parent.height - self.height) / 2;
                         }
                     }
                 }
@@ -91,6 +103,7 @@ export component QueuePanel inherits Rectangle {
                     height: 44px;
                     border-radius: Theme.r-ctl;
                     background: ta.has-hover ? Theme.fill : transparent;
+                    animate background { duration: 90ms; }
                     ta := TouchArea {
                         mouse-cursor: pointer;
                         clicked => { root.play-index(i); }
@@ -125,11 +138,16 @@ export component QueuePanel inherits Rectangle {
                             font-size: 12px;
                             color: Theme.text-3;
                             vertical-alignment: center;
+                            opacity: ta.has-hover ? 0 : 1;
+                            animate opacity { duration: 100ms; }
                         }
+                        // Удаление из очереди (при наведении)
                         IconButton {
-                            glyph: "\u{2715}";
+                            source: Icons.close;
                             size: 24px;
-                            glyph-size: 10px;
+                            icon-size: 11px;
+                            opacity: ta.has-hover ? 1 : 0;
+                            animate opacity { duration: 100ms; }
                             y: (parent.height - 24px) / 2;
                             clicked => { root.remove-index(i); }
                         }

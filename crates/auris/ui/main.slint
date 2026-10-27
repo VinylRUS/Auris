@@ -291,18 +291,19 @@ export component MainWindow inherits Window {
                     source-label: root.queue-source;
                     play-index(i) => { root.queue-play-index(i); }
                     remove-index(i) => { root.queue-remove-index(i); }
+                    close => { root.queue-open = false; }
                 }
             }
         }
 
-        // Плавающий плеер
+        // Плавающий плеер (с запасом под тень)
         if root.logged-in: Rectangle {
             height: 104px;
             background: transparent;
             PlayerBar {
-                y: 0;
-                x: 12px;
-                width: parent.width - 24px;
+                y: 4px;
+                x: 14px;
+                width: parent.width - 28px;
                 title: root.cur-title;
                 artists: root.cur-artists;
                 cover: root.cur-cover;

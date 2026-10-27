@@ -5,6 +5,70 @@
 
 ---
 
+## Сессия 4 — 2026-10-27: редизайн интерфейса («внешка»)
+
+**Задача:** пользователь: «Выглядит ужасно, надо доделывать внешку».
+Диагноз: иконки были unicode-глифами (⌂ ∿ ⚙ ♥ ‖) — рендер зависел от
+системного шрифта, выглядели дёшево; не было hover-состояний и анимаций;
+вёрстка страниц «разъезжалась» (огромные пустоты из-за растяжения nested-Layout
+внутри Flickable).
+
+### Что сделано
+
+- **Иконки**: 34 SVG Fluent-стиля; генератор живёт вне репо
+  (`/home/z/my-project/scripts/gen_ui_icons.py`), сами файлы — в
+  `crates/auris/ui/icons/*.svg` (белая краска, 24×24, stroke 1.7, round caps).
+  Рендер — Slint `Image.colorize` (SVG уже поддержан из коробки: resvg в
+  зависимостях, рендер в размере элемента). Глобал `Icons` в `ui/icons.slint`.
+- **Выводы по Slint 1.18** (проверено по исходникам компилятора):
+  - `Rectangle.color` — задепрекейченный алиас `background`, своё свойство
+    иконок названо `tint`;
+  - `Path.stroke-width` — в ЭКРАННЫХ пикселях, не масштабируется с viewbox;
+  - дефолт `alignment` у VerticalLayout/HorizontalLayout = **Stretch** →
+    если Flickable.content-height больше реального контента, nested-Layout
+    растягиваются и появляются пустоты между секциями. Лечение: `alignment:
+    start` внутреннему layout + честный content-height. Сделано на всех
+    страницах.
+  - Анимации: `iteration-count: -1; direction: alternate` — рабочий рецепт
+    бесконечного «пинга-понга» (эквалайзер EqBars, «дышащие» волны Path).
+- **Компоненты**: IconButton/PlayButton/ActionButton/Chip/SliderBar/TileCard/
+  TrackRow/Toggle/SearchField — hover+pressed состояния, анимации 90–150 мс;
+  TileCard: затемнение + круглая play-кнопка при наведении; TrackRow:
+  эквалайзер/номер, действия проявляются при наведении (`interactive`
+  у IconButton блокирует клики по скрытым кнопкам).
+- **Титлбар**: Win11 caption-кнопки 46×40 (крест с #C42B1C), лого =
+  эквалайзер в градиентном квадрате. **Сайдбар**: векторные иконки,
+  карточка пользователя кликабельна (→ настройки). **Плеер-бар**: тень
+  (drop-shadow), транспорт с векторными иконками, mute по клику на громкость
+  (UI-state, без Rust-колбэков), убрана мёртвая кнопка «нота».
+- **Демо-режим**: `AURIS_UI_DEMO=1` → окно с мок-данными (crates/auris/src/
+  demo.rs) — для скриншот-тестирования UI без сети.
+- **Верификация визуальная**: Xvfb :97 + `winit-software` + python-xlib
+  скриншоты (генератор `/home/z/my-project/scripts/shot.py`, координаты
+  навигации подобраны), проверка VLM: «уровень Spotify», дефектов нет.
+  Скриншоты: `/home/z/my-project/download/ui-*.png`.
+
+### Грабли окружения (важно для следующих сессий)
+
+- Линковка GUI-бинарника локально: статический `libfreetype.a` из sysroot
+  тянет libpng/zlib/bz2/brotli → `cargo rustc -p auris --bin auris --
+  -Clink-arg=-lpng16 -Clink-arg=-lz -Clink-arg=-lbz2 -Clink-arg=-lbrotlidec
+  -Clink-arg=-lbrotlicommon` (системные либы добавлены в LIBRARY_PATH в
+  `scripts/env.sh`). `cargo test -p auris` локально не линкуется — тесты
+  только в api/core (15 шт), GUI проверяется cargo check + CI.
+- Xvfb: нужны `libxkbcommon-x11` + `libxcb-xkb` (deb → sysroot, LD_LIBRARY_PATH
+  в env.sh), бэкенд `winit-software` (femtovg/GLX под Xvfb даёт чёрный экран).
+- Диск: target/ распух до 7.6 ГБ → линкер ловил SIGBUS. Чистить
+  `target/debug/{incremental,deps,build}` + `CARGO_INCREMENTAL=0`.
+
+### Статус на конец сессии
+
+- Коммит `feat(ui): полный редизайн — векторные иконки, hover-состояния,
+  анимации, фикс вёрстки` запушен; main ждал CI; после зелёного — тег
+  **v0.0.1b** (релизный пайплайн уже настроен сессиями 1–3).
+
+---
+
 ## Сессия 3 — 2026-10-27 (продолжение): фикс Windows-сборки, worklog в репо
 
 **Задача:** CI на main упал на Windows; перенести worklog в репозиторий;
