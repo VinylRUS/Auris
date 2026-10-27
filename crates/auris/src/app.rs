@@ -1,6 +1,6 @@
 //! Оркестратор приложения: состояние, колбэки UI, вход, настройки.
 
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::mpsc::Receiver;
 use std::sync::{Arc, Mutex};
 
@@ -72,6 +72,8 @@ pub struct App {
     pub update_cancel: Arc<AtomicBool>,
     /// UID аккаунта.
     pub uid: Arc<Mutex<i64>>,
+    /// Поколение запроса подсказок (для дебаунса).
+    pub suggest_gen: AtomicU64,
     /// Слабая ссылка на окно.
     pub ui: Weak<MainWindow>,
     /// Где хранится токен.
@@ -120,6 +122,7 @@ impl App {
             history,
             login_cancel: Arc::new(AtomicBool::new(false)),
             update_cancel: Arc::new(AtomicBool::new(false)),
+            suggest_gen: AtomicU64::new(0),
             uid: Arc::new(Mutex::new(0)),
             ui,
             storage_kind: Arc::new(Mutex::new(tokens.kind)),
@@ -234,6 +237,46 @@ impl App {
             ui.set_settings_storage(kind.into());
         });
         Ok(())
+    }
+
+    /// Подсказки поиска с дебаунсом 350 мс (`GET /search/suggest`).
+    pub async fn suggest(self: &Arc<Self>, part: &str) {
+        let part = part.trim().to_string();
+        let gen = self.suggest_gen.fetch_add(1, Ordering::Relaxed) + 1;
+        if part.len() < 2 {
+            self.clear_suggestions();
+            return;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(350)).await;
+        // Пользователь продолжил печатать — этот запрос устарел.
+        if self.suggest_gen.load(Ordering::Relaxed) != gen {
+            return;
+        }
+        let client = self.api.lock().expect("api").clone();
+        match client.search_suggest(&part).await {
+            Ok(items) if !items.is_empty() => {
+                if self.suggest_gen.load(Ordering::Relaxed) != gen {
+                    return;
+                }
+                let top: Vec<slint::SharedString> =
+                    items.iter().take(8).map(|s| models::s(s.clone())).collect();
+                self.ui_inv(move |ui| {
+                    ui.set_search_suggestions(slint::ModelRc::new(std::rc::Rc::new(
+                        slint::VecModel::from(top),
+                    )));
+                });
+            }
+            _ => self.clear_suggestions(),
+        }
+    }
+
+    /// Скрывает попап подсказок.
+    pub fn clear_suggestions(self: &Arc<Self>) {
+        self.ui_inv(move |ui| {
+            ui.set_search_suggestions(slint::ModelRc::new(std::rc::Rc::new(
+                slint::VecModel::from(Vec::<slint::SharedString>::new()),
+            )));
+        });
     }
 
     /// Домашняя страница: лента, плейлисты, лайки, история.

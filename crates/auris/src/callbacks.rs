@@ -97,6 +97,28 @@ pub(crate) fn init_search(app: &Arc<App>, ui: &MainWindow) {
     }
     {
         let app = Arc::clone(app);
+        ui.on_suggest(move |part| {
+            let part = part.to_string();
+            let app = Arc::clone(&app);
+            app.spawn(|app| async move { app.suggest(&part).await });
+        });
+    }
+    {
+        let app = Arc::clone(app);
+        ui.on_accept_suggestion(move |text| {
+            // Подставляем текст в поле и ищем; попап скроется в run_search.
+            let text = text.to_string();
+            app.ui_inv(move |ui| {
+                ui.set_search_suggestions(slint::ModelRc::new(std::rc::Rc::new(
+                    slint::VecModel::from(Vec::<slint::SharedString>::new()),
+                )));
+            });
+            let app = Arc::clone(&app);
+            app.spawn(|app| async move { app.run_search(&text).await });
+        });
+    }
+    {
+        let app = Arc::clone(app);
         ui.on_play_from_search(move |index| app.play_from_context(index as usize, 0));
     }
     {
@@ -520,6 +542,9 @@ pub(crate) fn init_settings(app: &Arc<App>, ui: &MainWindow) {
 impl App {
     /// Выполняет поиск и обновляет модели.
     async fn run_search(self: &Arc<Self>, text: &str) {
+        // Прячем подсказки и обрываем их загрузку.
+        self.suggest_gen.fetch_add(1, Ordering::Relaxed);
+        self.clear_suggestions();
         self.ui_inv(|ui| {
             ui.set_searching(true);
             ui.set_has_results(false);

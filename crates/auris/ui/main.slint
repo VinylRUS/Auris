@@ -67,6 +67,7 @@ export component MainWindow inherits Window {
     };
     in-out property <[TrackItem]> search-tracks;
     in-out property <int> search-total: 0;
+    in-out property <[string]> search-suggestions;
 
     // ---- Главная ----
     in-out property <string> greeting: "Добрый день";
@@ -145,6 +146,8 @@ export component MainWindow inherits Window {
     callback login-cancel();
 
     callback search(string);
+    callback suggest(string);
+    callback accept-suggestion(string);
     callback play-from-search(int);
     callback play-best();
     callback search-like-toggled(int);
@@ -271,7 +274,10 @@ export component MainWindow inherits Window {
                         has-best: root.has-best;
                         tracks: root.search-tracks;
                         tracks-total: root.search-total;
+                        suggestions: root.search-suggestions;
                         search(t) => { root.search(t); }
+                        suggest(t) => { root.suggest(t); }
+                        accept-suggestion(s) => { root.accept-suggestion(s); }
                         play-best => { root.play-best(); }
                         play-index(i) => { root.play-from-search(i); }
                         like-toggled(i) => { root.search-like-toggled(i); }
