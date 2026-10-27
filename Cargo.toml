@@ -1,0 +1,41 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/auris-api",
+    "crates/auris-player",
+    "crates/auris-core",
+    "crates/auris",
+]
+
+[workspace.package]
+version = "0.0.1-alpha.1"
+edition = "2021"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/VinylRUS/Auris"
+rust-version = "1.82"
+
+[workspace.dependencies]
+# async runtime + http
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "fs", "sync", "io-util"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "charset", "http2", "stream"] }
+futures-util = "0.3"
+
+# serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# errors
+anyhow = "1"
+thiserror = "2"
+
+# utils
+log = "0.4"
+env_logger = "0.11"
+dirs = "6"
+md-5 = "0.10"
+
+[profile.release]
+opt-level = "s"
+lto = "thin"
+strip = true
+codegen-units = 1
