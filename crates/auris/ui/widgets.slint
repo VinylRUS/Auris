@@ -190,11 +190,24 @@ export component SliderBar inherits Rectangle {
     in property <bool> thumb-always: true;    // точка видна всегда (громкость)
     callback changed(float);
 
-    width: 18px;                              // зона захвата
+    // Фиксированная высота зоны захвата: без неё layout растягивал
+    // элемент на всю высоту колонки, а явный y-офсет сдвигал дорожку
+    // к нижнему краю плеер-бара (баг «ползунок у самого низа»).
+    // 32px = высота IconButton: в строке с иконками дорожка на одном
+    // уровне с их центрами.
+    height: 32px;
+    // Ширина НЕ фиксируется: иначе horizontal-stretch у seek-бара не
+    // мог растянуть его (полоса прогресса оставалась 18px). Минимум —
+    // зона захвата; точную ширину (громкость 88px) задают места использования.
+    min-width: 18px;
     property <bool> hot: ta.has-hover || ta.pressed;
 
     // дорожка (утолщается при наведении)
     Rectangle {
+        // Явные x: в Slint дочерний элемент без x/y позиционируется
+        // по ЦЕНТРУ родителя — без этого заполнение «плавало»
+        // посередине дорожки вместо прижатия к левому краю.
+        x: 0;
         y: (parent.height - (root.hot ? 6px : 4px)) / 2;
         height: root.hot ? 6px : 4px;
         border-radius: self.height / 2;
@@ -203,6 +216,7 @@ export component SliderBar inherits Rectangle {
         animate y { duration: 90ms; }
 
         Rectangle {
+            x: 0;
             width: parent.width * clamp(root.value, 0, 1);
             border-radius: parent.height / 2;
             background: Theme.accent;

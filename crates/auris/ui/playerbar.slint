@@ -48,12 +48,17 @@ export component PlayerBar inherits Rectangle {
         spacing: 12px;
 
         // ---- Левая треть: трек ----
+        // Вертикальные паддинги центрируют контент (максимум высоты —
+        // обложка 48px): layout-ы топ-выравнивают фиксированных детей,
+        // явные y-биндинги в layout — анти-паттерн (см. историю бага
+        // с ползунком громкости).
         HorizontalLayout {
             horizontal-stretch: 10;
             spacing: 14px;
+            padding-top: 22px;
+            padding-bottom: 22px;
             Cover {
                 width: 48px; height: 48px;
-                y: (parent.height - 48px) / 2;
                 cover-image: root.cover;
                 cover-variant: root.cover-variant;
                 radius: 6px;
@@ -74,16 +79,19 @@ export component PlayerBar inherits Rectangle {
                     overflow: elide;
                 }
             }
-            // Лайк (с «поп»-анимацией)
+            // Лайк (с «поп»-анимацией): контейнер во всю высоту строки
+            // (48px) — кнопка 34px центрируется внутри как в обычном
+            // позиционировании, а не топ-выравнивается layout-ом.
             Rectangle {
-                width: 34px; height: 34px;
-                y: (parent.height - 34px) / 2;
+                width: 48px; height: 48px;
                 transform-scale-x: root.liked ? 112% : 100%;
                 transform-scale-y: root.liked ? 112% : 100%;
                 animate transform-scale-x { duration: 170ms; easing: ease-out; }
                 animate transform-scale-y { duration: 170ms; easing: ease-out; }
                 IconButton {
-                    width: 100%; height: 100%;
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    width: 34px; height: 34px;
                     source: root.liked ? Icons.heart-filled : Icons.heart;
                     on: root.liked;
                     icon-size: 18px;
@@ -101,34 +109,39 @@ export component PlayerBar inherits Rectangle {
             HorizontalLayout {
                 alignment: center;
                 spacing: 6px;
+                // Боковые кнопки — 42px (высота play-кнопки): иначе
+                // layout топ-выравнивает их и иконки сидят на 5px выше
+                // центра play.
                 IconButton {
                     source: Icons.shuffle; on: root.shuffle; icon-size: 18px;
+                    size: 42px;
                     clicked => { root.toggle-shuffle(); }
                 }
-                IconButton { source: Icons.prev; icon-size: 19px; clicked => { root.prev(); } }
+                IconButton { source: Icons.prev; icon-size: 19px; size: 42px; clicked => { root.prev(); } }
                 PlayButton {
                     playing: root.playing;
                     size: 42px;
                     clicked => { root.toggle-play(); }
                 }
-                IconButton { source: Icons.next; icon-size: 19px; clicked => { root.next(); } }
+                IconButton { source: Icons.next; icon-size: 19px; size: 42px; clicked => { root.next(); } }
                 IconButton {
                     source: root.repeat == 2 ? Icons.repeat-one : Icons.repeat;
                     on: root.repeat > 0;
                     icon-size: 18px;
+                    size: 42px;
                     clicked => { root.cycle-repeat(); }
                 }
             }
 
             HorizontalLayout {
                 spacing: 10px;
+                // Высоту строке задаёт SliderBar (32px), тексты
+                // растягиваются на неё и центрируются по вертикали.
                 Text {
                     text: Theme.fmt-time(root.position-sec);
                     font-size: 11.5px;
                     color: Theme.text-3;
                     vertical-alignment: center;
-                    width: 36px;
-                    horizontal-alignment: right;
                 }
                 SliderBar {
                     horizontal-stretch: 1;
@@ -141,28 +154,31 @@ export component PlayerBar inherits Rectangle {
                     font-size: 11.5px;
                     color: Theme.text-3;
                     vertical-alignment: center;
-                    width: 36px;
                 }
             }
         }
 
         // ---- Правая треть: лирика + очередь + громкость ----
+        // Паддинги центрируют строку иконок+слайдера (высота группы
+        // 32px). Раньше явный y-биндинг + растянутая высота SliderBar-а
+        // сдвигали ползунок громкости к нижнему краю панели, а после
+        // удаления y layout топ-выравнивал группу.
         HorizontalLayout {
             horizontal-stretch: 10;
             alignment: end;
             spacing: 8px;
+            padding-top: 30px;
+            padding-bottom: 30px;
             IconButton {
                 source: Icons.lyrics;
                 on: root.lyrics-open;
                 icon-size: 17px;
-                y: (parent.height - 32px) / 2;
                 clicked => { root.toggle-lyrics(); }
             }
             IconButton {
                 source: Icons.queue;
                 on: root.queue-open;
                 icon-size: 17px;
-                y: (parent.height - 32px) / 2;
                 clicked => { root.toggle-queue(); }
             }
             // Громкость: клик по иконке = mute/unmute
@@ -170,7 +186,6 @@ export component PlayerBar inherits Rectangle {
                 source: root.volume <= 0.001 ? Icons.volume-0
                       : root.volume < 0.45 ? Icons.volume-1 : Icons.volume-2;
                 icon-size: 17px;
-                y: (parent.height - 32px) / 2;
                 clicked => {
                     if (root.volume > 0.001) {
                         root.pre-mute = root.volume;
@@ -184,7 +199,6 @@ export component PlayerBar inherits Rectangle {
             }
             SliderBar {
                 width: 88px;
-                y: (parent.height - 18px) / 2;
                 value: root.volume;
                 changed(v) => { root.set-volume(v); }
             }

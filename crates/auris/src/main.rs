@@ -78,7 +78,8 @@ fn main() -> anyhow::Result<()> {
     app::App::init(&app, &ui);
 
     // Демо-режим UI: AURIS_UI_DEMO=1 — мок-данные без сети.
-    if std::env::var_os("AURIS_UI_DEMO").is_some() {
+    let demo = std::env::var_os("AURIS_UI_DEMO").is_some();
+    if demo {
         demo::fill(&ui);
     } else {
         app.bootstrap();
@@ -88,15 +89,19 @@ fn main() -> anyhow::Result<()> {
     }
 
     // Таймер опроса плеера (держим в main — Slint Timer не Send).
+    // В демо-режиме НЕ запускаем: пустой снимок плеера затирал бы
+    // мок-позицию/длительность (position=0, duration=0) каждые 300мс.
     let tick_app = Arc::clone(&app);
     let timer = slint::Timer::default();
-    timer.start(
-        slint::TimerMode::Repeated,
-        std::time::Duration::from_millis(300),
-        move || {
-            tick_app.on_tick();
-        },
-    );
+    if !demo {
+        timer.start(
+            slint::TimerMode::Repeated,
+            std::time::Duration::from_millis(300),
+            move || {
+                tick_app.on_tick();
+            },
+        );
+    }
     std::mem::forget(timer); // живёт до конца процесса
 
     ui.run()?;
