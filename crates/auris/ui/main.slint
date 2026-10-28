@@ -291,7 +291,10 @@ export component MainWindow inherits Window {
                     // Выше плавающего плеера: «Настройки» и карточка профиля
                     // не должны уходить под панель воспроизведения.
                     height: parent.height - 104px;
-                    page <=> root.page;
+                    // Односторонний биндинг: page у сайдбара — in-свойство,
+                    // <=> на in-свойстве вычисляется один раз и не живёт
+                    // (см. комментарий у плеер-бара ниже).
+                    page: root.page;
                     user-name: root.user-name;
                     user-plan: root.user-plan;
                     user-initial: root.user-initial;
@@ -314,7 +317,7 @@ export component MainWindow inherits Window {
                     if root.page == 0: HomePage {
                         width: 100%; height: 100%;
                         greeting: root.greeting;
-                        chip <=> root.home-chip;
+                        chip: root.home-chip;
                         has-subscription: root.has-subscription;
                         recent: root.home-recent;
                         generated: root.home-generated;
@@ -346,9 +349,9 @@ export component MainWindow inherits Window {
                         playlists: root.library-playlists;
                         albums: root.library-albums;
                         artists: root.library-artists;
-                        playlist-open <=> root.playlist-open;
-                        playlist-title <=> root.playlist-title;
-                        playlist-subtitle <=> root.playlist-subtitle;
+                        playlist-open: root.playlist-open;
+                        playlist-title: root.playlist-title;
+                        playlist-subtitle: root.playlist-subtitle;
                         playlist-tracks: root.playlist-tracks;
                         open-tile(t) => { root.open-tile(t); }
                         close-playlist => { root.playlist-open = false; }
@@ -371,8 +374,12 @@ export component MainWindow inherits Window {
                         cover: root.cur-cover;
                         cover-variant: root.cur-cover-variant;
                         playing: root.playing;
-                        position-sec <=> root.position-sec;
-                        duration-sec <=> root.duration-sec;
+                        // Односторонние биндинги: второй <=> на те же свойства
+                        // окна (первый — у плеер-бара) ломал цепочку —
+                        // плеер-бар навсегда видел position/duration = 0
+                        // (пустой прогресс и «—» вместо таймкодов).
+                        position-sec: root.position-sec;
+                        duration-sec: root.duration-sec;
                         liked: root.cur-liked;
                         upcoming: root.wave-upcoming;
                         start-wave => { root.wave-start(); }
@@ -385,28 +392,28 @@ export component MainWindow inherits Window {
                     }
                     if root.page == 5: SettingsPage {
                         width: 100%; height: 100%;
-                        preset <=> root.settings-preset;
-                        accent-custom <=> root.settings-accent;
-                        quality <=> root.settings-quality;
-                        downloads-dir <=> root.downloads-dir;
-                        cache-size <=> root.settings-cache-size;
+                        preset: root.settings-preset;
+                        accent-custom: root.settings-accent;
+                        quality: root.settings-quality;
+                        downloads-dir: root.downloads-dir;
+                        cache-size: root.settings-cache-size;
                         user-name: root.user-name;
                         user-login: root.user-login;
                         user-plan: root.user-plan;
-                        version <=> root.settings-version;
-                        storage-kind <=> root.settings-storage;
+                        version: root.settings-version;
+                        storage-kind: root.settings-storage;
                         set-theme(t) => { root.settings-set-theme(t); }
                         set-accent(a) => { root.settings-set-accent(a); }
                         pick-downloads-dir => { root.settings-pick-dir(); }
                         set-quality(q) => { root.settings-set-quality(q); }
                         clear-cache => { root.settings-clear-cache(); }
                         logout => { root.settings-logout(); }
-                        update-state <=> root.update-state;
-                        update-version <=> root.update-version;
-                        update-notes <=> root.update-notes;
-                        update-progress <=> root.update-progress;
-                        update-error <=> root.update-error;
-                        update-installer <=> root.update-installer;
+                        update-state: root.update-state;
+                        update-version: root.update-version;
+                        update-notes: root.update-notes;
+                        update-progress: root.update-progress;
+                        update-error: root.update-error;
+                        update-installer: root.update-installer;
                         check-update => { root.update-check(); }
                         install-update => { root.update-install(); }
                         cancel-update => { root.update-cancel(); }
@@ -455,12 +462,19 @@ export component MainWindow inherits Window {
                     cover-variant: root.cur-cover-variant;
                     playing: root.playing;
                     liked: root.cur-liked;
-                    position-sec <=> root.position-sec;
-                    duration-sec <=> root.duration-sec;
+                    // ВАЖНО: у плеер-бара только volume — настоящий in-out
+                    // (бар пишет его при mute). Остальные его свойства — in,
+                    // и <=> на них не обновлялся после старта: прогресс
+                    // оставался пустым, таймкоды — «—», shuffle/repeat/
+                    // queue-open не реагировали. Поэтому — односторонние
+                    // биндинги; изменения идут через колбэки → Rust →
+                    // свойства окна.
+                    position-sec: root.position-sec;
+                    duration-sec: root.duration-sec;
                     volume <=> root.volume;
-                    shuffle <=> root.shuffle;
-                    repeat <=> root.repeat;
-                    queue-open <=> root.queue-open;
+                    shuffle: root.shuffle;
+                    repeat: root.repeat;
+                    queue-open: root.queue-open;
                     lyrics-open: root.lyrics-open;
                     toggle-play => { root.player-toggle(); }
                     next => { root.player-next(); }

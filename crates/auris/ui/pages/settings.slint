@@ -1,7 +1,7 @@
 // Настройки: внешний вид (темы + акцент), загрузки, аккаунт, о программе.
 import { Theme } from "../theme.slint";
 import { Icons } from "../icons.slint";
-import { ActionButton } from "../widgets.slint";
+import { ActionButton, Chip, Toggle } from "../widgets.slint";
 
 component ThemePreview inherits Rectangle {
     // Мини-превью темы: сайдбар + карточки + плеер
@@ -369,9 +369,26 @@ export component SettingsPage inherits Rectangle {
                             vertical-alignment: center;
                             width: 130px;
                         }
+                        // Селектор качества: раньше контейнер был пуст —
+                        // значение не отображалось и его нельзя было сменить.
                         HorizontalLayout {
                             spacing: 8px;
                             alignment: start;
+                            Chip {
+                                label: "Низкое";
+                                active: root.quality == 0;
+                                clicked => { root.set-quality(0); }
+                            }
+                            Chip {
+                                label: "Обычное";
+                                active: root.quality == 1;
+                                clicked => { root.set-quality(1); }
+                            }
+                            Chip {
+                                label: "Высокое";
+                                active: root.quality == 2;
+                                clicked => { root.set-quality(2); }
+                            }
                         }
                     }
                 }
