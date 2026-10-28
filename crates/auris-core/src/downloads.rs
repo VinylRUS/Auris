@@ -132,7 +132,7 @@ impl DownloadManager {
             anyhow::bail!("вариант не помечен как direct (нужна подписка)");
         }
 
-        let link = auris_api::sign::direct_link(client.http(), &info.url)
+        let link = auris_api::sign::direct_link(client.http(), &info.download_info_url)
             .await
             .map_err(|e| anyhow::anyhow!("direct link: {e}"))?;
 

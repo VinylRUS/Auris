@@ -5,6 +5,59 @@
 
 ---
 
+## Сессия 9 — 2026-10-29: 0.0.1f — «Музыка не воспроизводится»
+
+**Задача:** пользователь после 0.0.1e: «Вроде всё показывается. Но
+выглядит криво. Это ладно. Музыка не воспроизводится». Лог показал
+`playback: network error: builder error: builder error: relative URL
+without a base` на каждом запуске трека и «Моей волны».
+
+### Root cause: `downloadInfoUrl` vs `url`
+
+`play_index` → `track_download_info` → `sign::direct_link(info.url)`:
+модель `DownloadInfo` ждала поле `url`, живой API отдаёт
+`downloadInfoUrl` (как и MarshalX). `#[serde(default)]` молча
+подставлял пустую строку → reqwest GET `""` → «relative URL without
+a base». Фикстура `download_info.json` была написана по памяти с
+неверным именем — golden-тест зелёно врал.
+
+Коснулось и скачиваний (`downloads.rs::run` — то же поле).
+
+### Сделано
+
+- `models/download.rs`: поле `download_info_url` (→ `downloadInfoUrl`),
+  тест на живую форму + тест-регрессия на неверное имя поля.
+- `sign.rs::direct_link`: явная валидация абсолютного URL с внятной
+  ошибкой вместо текста reqwest; тест.
+- `playback.rs`/`downloads.rs`: новое имя поля.
+- `app.rs::load_home_inner`: guard `uid == 0` — до завершения входа
+  главная больше не падает на `users_playlists_list(0)` (400
+  «invalid uid: 0» из лога), показывает ленту без персонального.
+- Фикстура переписана по живой форме; golden-тест проверяет
+  непустые URL у всех вариантов.
+- Версия 0.0.1-beta.5 (тег v0.0.1f), CHANGELOG.
+
+### Верификация
+
+- `cargo check --workspace` — 0 ошибок; `cargo fmt --check` — чисто;
+  clippy — без новых предупреждений (существующие на main те же).
+- `cargo test -p auris-api -p auris-core` — 11 + 17 + 12 passed
+  (3 новых теста). `cargo test --workspace` в песочнице не линкует
+  GUI-бин (libpng-символы при смешении sysroot с системным gcc —
+  особенность окружения, не кода); полный прогон — CI.
+- ⚠️ clippy в песочнице запускать БЕЗ переменной `SYSROOT` из env.sh
+  (clippy-driver путает её со своим sysroot → E0463).
+
+### Наблюдения по логу (не баги)
+
+- Повторный вход после обновления 0.0.1e: установщик
+  (CloseApplications=force) закрыл приложение во время незавершённого
+  OAuth-опроса — токен не успел сохраниться. Разовая ситуация.
+- `media controls … require PlayerConfig::hwnd` — media-клавиши
+  Windows не работают без HWND; отдельная задача на будущее.
+
+---
+
 ## Сессия 8 — 2026-10-28: 0.0.1e — «Не подтягиваются данные с яндекса»
 
 **Задача:** пользователь: «Не подтягиваются данные с яндекса» (после
