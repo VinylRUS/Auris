@@ -50,7 +50,7 @@ pub mod flex {
 
 pub use account::{Account, Permissions, Status, Subscription};
 pub use catalog::{
-    AlbumWithTracks, ArtistBriefInfo, Dashboard, Label, Landing, LikedAlbum, LikedArtist,
+    AlbumWithTracks, ArtistBriefInfo, Label, Landing, LandingBlock, LikedAlbum, LikedArtist,
     LikedPlaylist, Lyrics, RotorDashboard, SimilarTracks, Station, StationId, StationResult,
     Supplement,
 };

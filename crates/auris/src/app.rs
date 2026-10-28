@@ -281,8 +281,15 @@ impl App {
 
     /// Домашняя страница: лента, плейлисты, лайки, история.
     pub async fn load_home(self: &Arc<Self>) {
+        // Прошлая ошибка могла исправиться — баннер гасим на время
+        // новой попытки, вернётся только при повторном сбое.
+        self.ui_inv(|ui| ui.set_sync_error(models::s("")));
         if let Err(e) = self.load_home_inner().await {
             log::error!("home: {e:#}");
+            // Ошибка загрузки видна и в UI, а не только в журнале:
+            // молча пустая главная выглядит как «данные не подтягиваются».
+            let msg = format!("Не удалось загрузить данные: {e:#}");
+            self.ui_inv(move |ui| ui.set_sync_error(models::s(msg)));
         }
     }
 
@@ -298,12 +305,12 @@ impl App {
         };
         let mut seen = std::collections::HashSet::new();
         let items: Vec<(String, String)> = dash
-            .dashboard
             .stations
             .iter()
             .filter_map(|s| {
                 let st = s.station.as_ref()?;
-                (!st.name.is_empty()).then_some((st.name.clone(), s.id.seed()))
+                let seed = st.id.seed();
+                (!st.name.is_empty() && !seed.is_empty()).then_some((st.name.clone(), seed))
             })
             .filter(|(name, seed)| name != "" && seen.insert(seed.clone()))
             .collect();
@@ -337,8 +344,11 @@ impl App {
             .users_playlists_list(uid)
             .await
             .map_err(|e| anyhow::anyhow!("playlists: {e}"))?;
+        // Лайки — только идентификаторы (счётчик + сердечки): эндпоинт
+        // отдаёт укороченные записи, а полные карточки и обложки
+        // догружаются при открытии «Мне нравится».
         let (likes, likes_albums, likes_artists) = tokio::join!(
-            client.users_likes_tracks(uid),
+            client.users_likes_tracks_ids(uid),
             client.users_likes_albums(uid),
             client.users_likes_artists(uid)
         );
@@ -355,7 +365,6 @@ impl App {
 
         // Обложки (путями — Image создаётся в event loop)
         let mut cov = models::CoversSnapshot::default();
-        self.fill_track_covers(&likes.tracks, &mut cov).await;
         for pl in &playlists {
             if let Some(url) = pl.cover_url("300x300") {
                 let path = self.cache.cover(&url).await;

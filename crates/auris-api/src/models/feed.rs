@@ -18,7 +18,11 @@ pub struct GeneratedPlaylist {
     #[serde(default)]
     pub notify: Option<bool>,
     /// Плейлист.
-    #[serde(default)]
+    ///
+    /// В живом ответе `/feed` плейлист лежит в поле `data`
+    /// (GeneratedPlaylist.data в спецификации сообщества);
+    /// `playlist` оставлен как совместимый алиас.
+    #[serde(default, alias = "data")]
     pub playlist: Option<Playlist>,
 }
 

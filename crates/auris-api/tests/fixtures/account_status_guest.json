@@ -1,0 +1,21 @@
+{
+  "invocationInfo": {
+    "hostname": "hostname",
+    "req-id": "1793166434891572-36516972175288711",
+    "app-name": "music-accounts",
+    "exec-duration-millis": 0
+  },
+  "result": {
+    "account": {
+      "now": "2026-10-28T08:47:14+03:00",
+      "region": 10000,
+      "serviceAvailable": false
+    },
+    "permissions": {
+      "until": "2026-10-28T05:47:14+00:00",
+      "values": ["landing-play", "feed-play", "mix-play"],
+      "default": ["landing-play", "feed-play", "mix-play"]
+    },
+    "advertisement": "Оформите постоянную подписку – первый месяц бесплатно!"
+  }
+}

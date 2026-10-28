@@ -76,6 +76,7 @@ export component MainWindow inherits Window {
     in-out property <[TileItem]> home-recent;
     in-out property <[TileItem]> home-generated;
     in-out property <[TileItem]> home-playlists;
+    in-out property <string> sync-error: "";
 
     // ---- Библиотека ----
     in-out property <bool> playlist-open: false;
@@ -265,6 +266,7 @@ export component MainWindow inherits Window {
                         recent: root.home-recent;
                         generated: root.home-generated;
                         playlists: root.home-playlists;
+                        sync-error: root.sync-error;
                         chip-clicked(c) => { root.chip-clicked(c); }
                         play-wave => { root.play-wave(); }
                         open-tile(t) => { root.open-tile(t); }

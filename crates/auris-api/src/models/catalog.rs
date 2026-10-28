@@ -98,33 +98,38 @@ pub struct SimilarTracks {
 }
 
 /// Дашборд станций радио (`GET /rotor/stations/dashboard`).
+///
+/// Полезная нагрузка — `{"dashboardId": …, "stations": […]}`:
+/// станции лежат прямо в корне (без промежуточной обёртки).
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RotorDashboard {
-    /// Станции дашборда.
+    /// Идентификатор дашборда.
     #[serde(default)]
-    pub dashboard: Dashboard,
-}
-
-/// Обёртка дашборда.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Dashboard {
-    /// Станции.
+    pub dashboard_id: String,
+    /// Станции дашборда.
     #[serde(default)]
     pub stations: Vec<StationResult>,
 }
 
 /// Станция в результатах ротатора.
+///
+/// Идентификатор (тип+тег) лежит внутри `station.id` —
+/// на верхнем уровне элемента его нет (см. StationResult
+/// в спецификации сообщества).
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StationResult {
-    /// Идентификатор станции (сиды для `rotor/session/new`).
-    #[serde(default)]
-    pub id: StationId,
     /// Описание станции.
     #[serde(default)]
     pub station: Option<Station>,
+}
+
+impl StationResult {
+    /// Сид для `POST /rotor/session/new` (`user:onyourwave`).
+    pub fn seed(&self) -> Option<String> {
+        Some(self.station.as_ref()?.id.seed())
+    }
 }
 
 /// Идентификатор станции.
@@ -198,37 +203,51 @@ pub struct LikedArtist {
 }
 
 /// Ответ лендинга (`GET /landing3`) — блоки персональных подборок.
+///
+/// Полезная нагрузка — массив блоков:
+/// `[{"type": "personalPlaylists", "entities": […]}, …]`.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct Landing {
+    /// Блоки лендинга.
+    #[serde(default)]
+    pub blocks: Vec<LandingBlock>,
+}
+
+/// Блок лендинга.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Landing {
-    /// Сырые блоки лендинга (структура гетерогенна — доступ по имени).
-    #[serde(flatten)]
-    pub blocks: Value,
+pub struct LandingBlock {
+    /// Тип блока (`personalPlaylists`, `mixes`, `promotions`…).
+    #[serde(default, rename = "type")]
+    pub r#type: String,
+    /// Заголовок блока.
+    #[serde(default)]
+    pub title: String,
+    /// Сущности блока (гетерогенны — парсятся по месту).
+    #[serde(default)]
+    pub entities: Vec<Value>,
 }
 
 impl Landing {
-    /// Персональные плейлисты (`personalPlaylists` → entities → playlist).
+    /// Персональные плейлисты (блок `personalPlaylists` → entities → data → playlist).
     pub fn personal_playlists(&self) -> Vec<Playlist> {
-        extract_playlists(&self.blocks, "personalPlaylists")
+        extract_playlists(self, "personalPlaylists")
     }
 
-    /// Миксы (`mixes` → entities → data → playlist).
+    /// Миксы (блок `mixes` → entities → data → playlist).
     pub fn mixes(&self) -> Vec<Playlist> {
-        extract_playlists(&self.blocks, "mixes")
+        extract_playlists(self, "mixes")
     }
 }
 
-fn extract_playlists(v: &Value, block: &str) -> Vec<Playlist> {
+fn extract_playlists(l: &Landing, block_type: &str) -> Vec<Playlist> {
     let mut out = Vec::new();
-    let Some(entities) = v
-        .get(block)
-        .and_then(|b| b.get("entities"))
-        .and_then(|e| e.as_array())
-    else {
+    let Some(block) = l.blocks.iter().find(|b| b.r#type == block_type) else {
         return out;
     };
-    for e in entities {
-        // персональные плейлисты: { data: { playlist } }
+    for e in &block.entities {
+        // персональные плейлисты: { data: { playlist } };
+        // миксы: { data: { playlist } } либо сразу { playlist }
         if let Some(p) = e
             .get("data")
             .and_then(|d| d.get("playlist"))

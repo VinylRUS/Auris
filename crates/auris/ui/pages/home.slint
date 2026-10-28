@@ -11,6 +11,7 @@ export component HomePage inherits Rectangle {
     in property <[TileItem]> recent;
     in property <[TileItem]> generated;
     in property <[TileItem]> playlists;
+    in property <string> sync-error: "";   // ошибка загрузки (пусто — скрыт)
 
     callback chip-clicked(int);
     callback play-wave();
@@ -127,6 +128,33 @@ export component HomePage inherits Rectangle {
                             height: 34px;
                             width: 132px;
                             clicked => { root.play-wave(); }
+                        }
+                    }
+                }
+
+                // ---- Баннер ошибки загрузки ----
+                if root.sync-error != "": Rectangle {
+                    height: 44px;
+                    border-radius: Theme.r-card;
+                    background: Theme.fill;
+                    border-width: 1px;
+                    border-color: Theme.stroke;
+                    HorizontalLayout {
+                        padding-left: 14px;
+                        padding-right: 14px;
+                        spacing: 10px;
+                        alignment: start;
+                        Icon {
+                            source: Icons.error;
+                            size: 16px;
+                            tint: Theme.accent;
+                        }
+                        Text {
+                            text: root.sync-error;
+                            font-size: 12.5px;
+                            color: Theme.text-2;
+                            vertical-alignment: center;
+                            overflow: elide;
                         }
                     }
                 }
