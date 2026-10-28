@@ -1,6 +1,7 @@
 //! Аккаунт и статус подписки.
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use super::flex;
 
@@ -51,7 +52,11 @@ pub struct Permissions {
     #[serde(default)]
     pub values: Vec<String>,
     /// Права по умолчанию с их сроками.
-    #[serde(default)]
+    ///
+    /// Живой API отдаёт их то строками (`["landing-play", …]` —
+    /// гостевой аккаунт), то объектами `{until, value}` —
+    /// десериализатор принимает обе формы.
+    #[serde(default, deserialize_with = "permission_defaults")]
     pub default: Vec<PermissionDefault>,
 }
 
@@ -122,4 +127,28 @@ impl Status {
     pub fn uid(&self) -> i64 {
         self.account.as_ref().map(|a| a.uid).unwrap_or(0)
     }
+}
+
+/// `permissions.default`: строки или объекты `{until, value}`.
+fn permission_defaults<'de, D>(d: D) -> std::result::Result<Vec<PermissionDefault>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let raw = Option::<Vec<Value>>::deserialize(d)?.unwrap_or_default();
+    let mut out = Vec::with_capacity(raw.len());
+    for v in raw {
+        match v {
+            Value::String(s) => out.push(PermissionDefault {
+                until: None,
+                value: Some(s),
+            }),
+            Value::Object(_) => {
+                if let Ok(p) = serde_json::from_value::<PermissionDefault>(v) {
+                    out.push(p);
+                }
+            }
+            _ => {}
+        }
+    }
+    Ok(out)
 }

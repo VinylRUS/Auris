@@ -1,8 +1,9 @@
-{
-  "invocationInfo": {},
-  "contentRestricted": false,
-  "personalPlaylists": {
-    "isFeatured": true,
+[
+  {
+    "id": "personal-playlists",
+    "type": "personalPlaylists",
+    "typeForFrom": "personalplaylists",
+    "title": "Собрано для вас",
     "entities": [
       {
         "data": {
@@ -21,8 +22,11 @@
       }
     ]
   },
-  "mixes": {
-    "isFeatured": true,
+  {
+    "id": "mixes",
+    "type": "mixes",
+    "typeForFrom": "mixes",
+    "title": "Миксы",
     "entities": [
       {
         "data": {
@@ -36,4 +40,4 @@
       }
     ]
   }
-}
+]

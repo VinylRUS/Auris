@@ -1,23 +1,16 @@
 {
+  "uid": 123456789,
   "revision": 42,
   "tracks": [
     {
       "id": 5275115,
-      "title": "Группа крови",
-      "available": true,
-      "durationMs": 285000,
-      "coverUri": "avatars.yandex.net/get-music-content/2a000001/xxx/%%",
-      "artists": [ { "id": 516, "name": "Кино", "various": false, "composer": false } ],
-      "albums": [ { "id": 5275114, "title": "Группа крови" } ]
+      "timestamp": "2026-01-02T03:04:05+00:00",
+      "albumId": "5275114"
     },
     {
       "id": 116376,
-      "title": "Судно",
-      "available": true,
-      "durationMs": 238000,
-      "coverUri": "avatars.yandex.net/get-music-content/2a000001/zzz/%%",
-      "artists": [ { "id": 264421, "name": "Молчат Дома", "various": false, "composer": false } ],
-      "albums": [ { "id": 49850, "title": "Этажи" } ]
+      "timestamp": "2026-01-03T03:04:05+00:00",
+      "albumId": "49850"
     }
   ]
 }

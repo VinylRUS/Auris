@@ -23,7 +23,7 @@ pub mod models;
 pub mod sign;
 
 pub use auth::{DeviceCode, OAuthToken, PollOutcome};
-pub use client::{Client, OAuthClient};
+pub use client::{unwrap_result, Client, OAuthClient};
 pub use error::{ApiError, Result};
 pub use models::*;
 

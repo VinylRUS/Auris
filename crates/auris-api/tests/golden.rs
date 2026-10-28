@@ -58,6 +58,16 @@ fn parses_feed_and_playlists() {
     assert_eq!(pl.title, "Плейлист дня");
     assert_eq!(pl.track_count, Some(60));
     assert_eq!(pl.tracks.len(), 0);
+    // Первый два плейлиста приходят в поле data (живой формат),
+    // третий — в playlist (совместимый алиас).
+    assert_eq!(
+        f.generated_playlists[1].playlist.as_ref().unwrap().title,
+        "Премьера"
+    );
+    assert_eq!(
+        f.generated_playlists[2].playlist.as_ref().unwrap().title,
+        "Микс"
+    );
 
     let lists: Vec<Playlist> = serde_json::from_str(&fixture("playlists.json")).unwrap();
     assert_eq!(lists.len(), 2);
@@ -81,8 +91,40 @@ fn parses_account_status() {
 }
 
 #[test]
+fn parses_guest_account_status_from_live_envelope() {
+    // Регрессия «данные не подтягиваются»: живой гостевой ответ
+    // (зафиксирован 2026-10-28). Обёртка result разворачивается,
+    // permissions.default приходит СТРОКАМИ — обе формы должны
+    // разбираться, иначе падает весь вход.
+    let v: serde_json::Value = serde_json::from_str(&fixture("account_status_guest.json")).unwrap();
+    let payload = auris_api::unwrap_result(v);
+    let s: Status = serde_json::from_value(payload).unwrap();
+    let account = s.account.clone().expect("account inside result");
+    assert_eq!(account.region, Some(10_000));
+    assert_eq!(account.uid, 0, "у гостя нет uid");
+    let perms = s.permissions.clone().expect("permissions");
+    assert_eq!(perms.values, vec!["landing-play", "feed-play", "mix-play"]);
+    assert_eq!(perms.default.len(), 3, "default строками тоже разбирается");
+    assert_eq!(perms.default[0].value.as_deref(), Some("landing-play"));
+    let _ = s.has_subscription(); // не паникует и не мешает разбору
+}
+
+#[test]
 fn parses_likes() {
-    let l: auris_api::api::LikesTracks = serde_json::from_str(&fixture("likes.json")).unwrap();
+    // Живой формат: укороченные записи {id, albumId} — полные
+    // карточки догружаются отдельным запросом /tracks.
+    let l: auris_api::api::LikesShort = serde_json::from_str(&fixture("likes.json")).unwrap();
+    assert_eq!(l.revision, 42);
+    assert_eq!(l.tracks.len(), 2);
+    assert_eq!(l.tracks[0].id, 527_5115);
+    assert_eq!(l.tracks[0].album_id, Some(5_275_114));
+    assert_eq!(l.tracks[1].id, 116_376);
+}
+
+#[test]
+fn parses_likes_full() {
+    // Гидратированная форма (после догрузки /tracks) — для UI.
+    let l: auris_api::api::LikesTracks = serde_json::from_str(&fixture("likes_full.json")).unwrap();
     assert_eq!(l.revision, 42);
     assert_eq!(l.tracks.len(), 2);
     assert_eq!(l.tracks[1].title, "Судно");
@@ -181,15 +223,19 @@ fn parses_supplement() {
 #[test]
 fn parses_rotor_dashboard() {
     let d: auris_api::RotorDashboard = serde_json::from_str(&fixture("dashboard.json")).unwrap();
-    assert_eq!(d.dashboard.stations.len(), 3);
-    let wave = &d.dashboard.stations[0];
-    assert_eq!(wave.id.seed(), "user:onyourwave");
+    assert_eq!(d.stations.len(), 3);
+    let wave = &d.stations[0];
+    assert_eq!(
+        wave.seed().as_deref(),
+        Some("user:onyourwave"),
+        "сид живёт внутри station.id"
+    );
     assert_eq!(
         wave.station.as_ref().map(|s| s.name.clone()),
         Some("Моя волна".into())
     );
-    let pl = &d.dashboard.stations[1];
-    assert_eq!(pl.id.seed(), "playlist:39852");
+    let pl = &d.stations[1];
+    assert_eq!(pl.seed().as_deref(), Some("playlist:39852"));
     assert_eq!(pl.station.as_ref().unwrap().name, "Плейлист дня");
 }
 
@@ -209,7 +255,11 @@ fn parses_likes_albums() {
 
 #[test]
 fn parses_landing_blocks() {
-    let l: auris_api::Landing = serde_json::from_str(&fixture("landing.json")).unwrap();
+    // Живой формат: массив блоков с полем type (как его собирает
+    // `Client::landing` из полезной нагрузки).
+    let blocks: Vec<auris_api::LandingBlock> =
+        serde_json::from_str(&fixture("landing.json")).unwrap();
+    let l = Landing { blocks };
     let personal = l.personal_playlists();
     assert_eq!(personal.len(), 1);
     assert_eq!(personal[0].title, "Плейлист дня");

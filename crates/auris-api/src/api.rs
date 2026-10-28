@@ -26,44 +26,69 @@ impl Client {
     }
 
     /// `GET /landing3/new-releases` — новые релизы (для чипа «Новинки»).
+    ///
+    /// Эндпоинт отдаёт только идентификаторы альбомов
+    /// (`{"newReleases": [id, …]}`) — карточки догружаем через `/albums`.
     pub async fn landing_new_releases(&self) -> Result<Vec<Album>> {
         let v: Value = self.get("/landing3/new-releases", &[]).await?;
-        Ok(extract_albums(&v))
+        let ids: Vec<i64> = v
+            .get("newReleases")
+            .and_then(|x| x.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|x| {
+                        x.as_i64()
+                            .or_else(|| x.as_str().and_then(|s| s.parse().ok()))
+                    })
+                    .take(MAX_BATCH_IDS)
+                    .collect()
+            })
+            .unwrap_or_default();
+        if ids.is_empty() {
+            // Неожиданная форма — пробуем достать альбомы напрямую
+            // (старый формат/фикстуры).
+            return Ok(extract_albums(&v));
+        }
+        self.albums(&ids).await
     }
 
     /// `GET /landing3/chart` — чарт (для чипа «Чарт»).
+    ///
+    /// Полезная нагрузка — ChartInfo с плейлистом чарта в поле `chart`;
+    /// треки плейлиста приходят обёрнутыми в `{"track": …}`.
     pub async fn landing_chart(&self) -> Result<Vec<Track>> {
         let v: Value = self.get("/landing3/chart", &[]).await?;
-        // Чарт приходит блоком playlists→tracks либо сразу tracks.
-        if let Some(tracks) = v.get("tracks").and_then(|t| t.as_array()) {
-            if let Ok(parsed) = serde_json::from_value::<Vec<Track>>(Value::Array(tracks.clone())) {
-                return Ok(parsed);
-            }
-        }
-        for block in ["playlists", "podcasts"] {
-            if let Some(items) = v.get(block).and_then(|t| t.as_array()) {
-                for item in items {
-                    if let Some(tracks) = item.get("tracks").and_then(|t| t.as_array()) {
-                        if let Ok(parsed) =
-                            serde_json::from_value::<Vec<Track>>(Value::Array(tracks.clone()))
-                        {
-                            return Ok(parsed);
-                        }
-                    }
-                }
-            }
-        }
-        Err(ApiError::Unexpected("chart: no tracks block found".into()))
+        // Чарт: chart.tracks; запасной вариант — треки в корне.
+        let items = v
+            .get("chart")
+            .and_then(|c| c.get("tracks"))
+            .or_else(|| v.get("tracks"))
+            .and_then(|t| t.as_array())
+            .cloned()
+            .ok_or_else(|| ApiError::Unexpected("chart: no tracks block found".into()))?;
+        Ok(parse_track_items(&items))
     }
 
     /// `GET /landing3` — полный лендинг (персональные плейлисты, миксы).
+    ///
+    /// Полезная нагрузка — массив блоков по типам.
     pub async fn landing(&self, blocks: &[&str]) -> Result<Landing> {
         let blocks = blocks
             .iter()
             .map(|b| b.to_string())
             .collect::<Vec<_>>()
             .join(",");
-        self.get("/landing3", &[("blocks", blocks)]).await
+        let v: Value = self.get("/landing3", &[("blocks", blocks)]).await?;
+        let arr = v
+            .as_array()
+            .cloned()
+            .ok_or_else(|| ApiError::Unexpected("landing: expected block array".into()))?;
+        Ok(Landing {
+            blocks: arr
+                .into_iter()
+                .filter_map(|b| serde_json::from_value::<LandingBlock>(b).ok())
+                .collect(),
+        })
     }
 
     // ------------------------------------------------------------------
@@ -119,34 +144,29 @@ impl Client {
         if ids.is_empty() {
             return Ok(Vec::new());
         }
-        let joined = ids
-            .iter()
-            .map(|i| i.to_string())
-            .collect::<Vec<_>>()
-            .join(",");
-        let v: Value = self
-            .get(
-                "/tracks",
-                &[
-                    ("track-ids", joined),
-                    ("with-positions", "true".to_string()),
-                ],
-            )
-            .await?;
-        // Ответ — массив треков; для сборников элементы имеют {track, id}.
-        let arr = v
-            .as_array()
-            .cloned()
-            .ok_or_else(|| ApiError::Unexpected("tracks: expected array".into()))?;
-        let mut out = Vec::with_capacity(arr.len());
-        for item in arr {
-            if item.get("track").is_some() {
-                if let Ok(t) = serde_json::from_value::<Track>(item["track"].clone()) {
-                    out.push(t);
-                }
-            } else if let Ok(t) = serde_json::from_value::<Track>(item) {
-                out.push(t);
-            }
+        let mut out = Vec::with_capacity(ids.len());
+        // Батчами: длинный список id раздувает URL и отклоняется сервером.
+        for chunk in ids.chunks(MAX_BATCH_IDS) {
+            let joined = chunk
+                .iter()
+                .map(|i| i.to_string())
+                .collect::<Vec<_>>()
+                .join(",");
+            let v: Value = self
+                .get(
+                    "/tracks",
+                    &[
+                        ("track-ids", joined),
+                        ("with-positions", "true".to_string()),
+                    ],
+                )
+                .await?;
+            // Ответ — массив треков; для сборников элементы имеют {track, id}.
+            let arr = v
+                .as_array()
+                .cloned()
+                .ok_or_else(|| ApiError::Unexpected("tracks: expected array".into()))?;
+            out.extend(parse_track_items(&arr));
         }
         Ok(out)
     }
@@ -228,8 +248,24 @@ impl Client {
     // Лайки
     // ------------------------------------------------------------------
 
-    /// `GET /users/{uid}/likes/tracks` — любимые треки.
+    /// `GET /users/{uid}/likes/tracks` — любимые треки (полные карточки).
+    ///
+    /// Эндпоинт отдаёт укороченные записи (`{id, albumId}`),
+    /// поэтому после списка догружаем полные треки через `/tracks`
+    /// (батчами — лайков может быть много).
     pub async fn users_likes_tracks(&self, uid: i64) -> Result<LikesTracks> {
+        let short = self.users_likes_tracks_ids(uid).await?;
+        let ids: Vec<i64> = short.tracks.iter().map(|t| t.id).collect();
+        let tracks = self.tracks(&ids).await?;
+        Ok(LikesTracks {
+            revision: short.revision,
+            tracks,
+        })
+    }
+
+    /// `GET /users/{uid}/likes/tracks` — только идентификаторы лайков
+    /// (счётчик, сердечки, лёгкая загрузка главной).
+    pub async fn users_likes_tracks_ids(&self, uid: i64) -> Result<LikesShort> {
         self.get(&format!("/users/{uid}/likes/tracks"), &[]).await
     }
 
@@ -380,7 +416,49 @@ impl Client {
     }
 }
 
-/// Ответ `GET /users/{uid}/likes/tracks`.
+/// Ответ `GET /users/{uid}/likes/tracks` — укороченные записи.
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LikesShort {
+    /// Ревизия библиотеки.
+    #[serde(default)]
+    pub revision: i64,
+    /// Укороченные треки (только идентификаторы).
+    #[serde(default)]
+    pub tracks: Vec<LikedTrackShort>,
+}
+
+/// Укороченная запись лайкнутого трека.
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LikedTrackShort {
+    /// Идентификатор трека.
+    #[serde(default, deserialize_with = "crate::models::flex::i64")]
+    pub id: i64,
+    /// Идентификатор альбома (для составного `trackId:albumId`).
+    #[serde(default, deserialize_with = "crate::models::flex::opt_i64")]
+    pub album_id: Option<i64>,
+}
+
+/// Разбирает список треков, допуская обёртку `{"track": …}`
+/// (очереди, плейлисты, чарт) и прямую форму.
+fn parse_track_items(items: &[Value]) -> Vec<Track> {
+    items
+        .iter()
+        .filter_map(|item| {
+            if item.get("track").is_some() {
+                serde_json::from_value::<Track>(item["track"].clone()).ok()
+            } else {
+                serde_json::from_value::<Track>(item.clone()).ok()
+            }
+        })
+        .collect()
+}
+
+/// Максимум идентификаторов в одном батче `/tracks` и `/albums`.
+const MAX_BATCH_IDS: usize = 100;
+
+/// Ответ `GET /users/{uid}/likes/tracks` — полные карточки (гидратация).
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LikesTracks {

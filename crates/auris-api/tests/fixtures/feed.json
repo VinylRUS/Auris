@@ -1,10 +1,13 @@
 {
+  "canGetMoreEvents": false,
+  "pumpkin": false,
+  "isWizardPassed": true,
   "generatedPlaylists": [
     {
       "type": "playlistOfTheDay",
       "ready": true,
       "notify": false,
-      "playlist": {
+      "data": {
         "uid": 123456789,
         "kind": 3,
         "title": "Плейлист дня",
@@ -17,7 +20,7 @@
     {
       "type": "recentTracks",
       "ready": true,
-      "playlist": {
+      "data": {
         "uid": 123456789,
         "kind": 6,
         "title": "Премьера",
@@ -41,5 +44,7 @@
       }
     }
   ],
-  "headlines": []
+  "headlines": [],
+  "today": "2026-10-28",
+  "days": []
 }

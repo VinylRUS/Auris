@@ -1,48 +1,38 @@
 {
-  "dashboard": {
-    "stations": [
-      {
+  "dashboardId": "6a7bd1e2-6f5f-4a0e-9a76-a5e07a1c9df5",
+  "pumpkin": false,
+  "stations": [
+    {
+      "station": {
         "id": {
           "type": "user",
           "tag": "onyourwave"
         },
-        "station": {
-          "id": {
-            "type": "user",
-            "tag": "onyourwave"
-          },
-          "name": "Моя волна",
-          "ropits": false
-        }
+        "name": "Моя волна",
+        "ropits": false
       },
-      {
+      "settings": { "language": "ru", "energy": 2 },
+      "explanation": "Слушайте чаще — станция станет лучше"
+    },
+    {
+      "station": {
         "id": {
           "type": "playlist",
           "tag": "39852"
         },
-        "station": {
-          "id": {
-            "type": "playlist",
-            "tag": "39852"
-          },
-          "name": "Плейлист дня",
-          "ropits": true
-        }
-      },
-      {
+        "name": "Плейлист дня",
+        "ropits": true
+      }
+    },
+    {
+      "station": {
         "id": {
           "type": "genre",
           "tag": "rock"
         },
-        "station": {
-          "id": {
-            "type": "genre",
-            "tag": "rock"
-          },
-          "name": "Рок",
-          "ropits": true
-        }
+        "name": "Рок",
+        "ropits": true
       }
-    ]
-  }
+    }
+  ]
 }
