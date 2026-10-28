@@ -9,10 +9,13 @@ export component LyricsPanel inherits Rectangle {
     in property <string> artists: "";
     in property <int> state: 0;        // 0 пусто, 1 загрузка, 2 готово, 3 нет текста
     in property <string> text: "";
+    // Ширина управляется извне (main.slint делает её адаптивной).
+    in property <length> panel-width: 380px;
     callback close();
 
-    width: 380px;
-    background: rgba(255, 255, 255, 0.015);
+    width: panel-width;
+    // Подложка из темы (раньше хардкод rgba(255,255,255,0.015)).
+    background: Theme.fill.with-alpha(0.015);
     // левая граница (Slint не умеет бордеры по сторонам)
     Rectangle {
         x: 0;

@@ -34,12 +34,14 @@ export component PlayerBar inherits Rectangle {
 
     height: 92px;
     border-radius: 10px;
-    background: rgba(30, 30, 30, 0.94);
+    // Фон — из темы (раньше хардкод rgba(30,30,30,0.94): в светлых
+    // темах плеер был чёрным пятном).
+    background: Theme.bg-deep.with-alpha(0.94);
     border-width: 1px;
     border-color: Theme.stroke;
     drop-shadow-blur: 22px;
     drop-shadow-offset-y: 7px;
-    drop-shadow-color: #66000000;
+    drop-shadow-color: #40000000;
 
     HorizontalLayout {
         padding-left: 18px; padding-right: 18px;

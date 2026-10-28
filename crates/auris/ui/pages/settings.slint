@@ -147,7 +147,10 @@ component SettingsCard inherits Rectangle {
     in property <string> title;
 
     border-radius: Theme.r-card;
-    background: rgba(255, 255, 255, 0.028);
+    // Карточка — токеном темы с полупрозрачностью: в тёмных темах
+    // чуть светлее фона, в светлых — чуть темнее (раньше хардкод
+    // rgba(255,255,255,0.028) на светлом фоне был невидим).
+    background: Theme.card.with-alpha(0.5);
     border-width: 1px;
     border-color: Theme.stroke;
 

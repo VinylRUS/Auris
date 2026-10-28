@@ -7,12 +7,16 @@ import { TrackItem } from "structs.slint";
 export component QueuePanel inherits Rectangle {
     in property <[TrackItem]> items;
     in property <string> source-label: "";
+    // Ширина управляется извне (main.slint делает её адаптивной);
+    // дефолт сохранён для автономного использования.
+    in property <length> panel-width: 300px;
     callback play-index(int);
     callback remove-index(int);
     callback close();
 
-    width: 300px;
-    background: rgba(255, 255, 255, 0.02);
+    width: panel-width;
+    // Подложка из темы (раньше хардкод rgba(255,255,255,0.02)).
+    background: Theme.fill.with-alpha(0.02);
     Rectangle {
         x: 0;
         width: 1px;

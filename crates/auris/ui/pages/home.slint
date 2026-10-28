@@ -1,7 +1,7 @@
 // Главная: волна-хиро, чипы, «недавно», «собрано для вас», плейлисты.
 import { Theme } from "../theme.slint";
 import { Icons, Icon } from "../icons.slint";
-import { ActionButton, Chip, SectionHead, TileGrid } from "../widgets.slint";
+import { ActionButton, Chip, EmptyHint, SectionHead, TileGrid } from "../widgets.slint";
 import { TileItem } from "../structs.slint";
 
 export component HomePage inherits Rectangle {
@@ -37,9 +37,9 @@ export component HomePage inherits Rectangle {
             // Хром страницы: шапка(44) + хиро(152) + чипы(34) + 3 заголовка секций(24+10)
             // + шпации + хвост. Высоты сеток считаются динамически (tile-grid).
             content-height: 96px + 152px + 34px
-                + 34px + recent-grid.height + (root.recent.length == 0 ? 18px : 0px)
+                + 34px + recent-grid.height + (root.recent.length == 0 ? 96px : 0px)
                 + (root.generated.length > 0 ? 34px + generated-grid.height : 0px)
-                + 34px + playlists-grid.height + (root.playlists.length == 0 ? 18px : 0px)
+                + 34px + playlists-grid.height + (root.playlists.length == 0 ? 96px : 0px)
                 + 24px;
 
             VerticalLayout {
@@ -66,7 +66,10 @@ export component HomePage inherits Rectangle {
                     height: 152px;
                     border-radius: Theme.r-card;
                     clip: true;
-                    background: @linear-gradient(105deg, Theme.accent-fill, #20202000 55%);
+                    // Второй стоп — прозрачный цвет ФОНА темы: градиент
+                    // растворяется в актуальный фон (раньше хардкод
+                    // #20202000 давал артефакт на стыке в светлых темах).
+                    background: @linear-gradient(105deg, Theme.accent-fill, Theme.bg.with-alpha(0) 55%);
 
                     // Декоративные волны (медленно «дышат»)
                     Path {
@@ -176,10 +179,9 @@ export component HomePage inherits Rectangle {
                         link-text: root.recent.length > 0 ? "Очистить" : "";
                         link-clicked => { }
                     }
-                    if root.recent.length == 0: Text {
+                    if root.recent.length == 0: EmptyHint {
+                        icon: Icons.note;
                         text: "Здесь появится история прослушиваний";
-                        font-size: 13px;
-                        color: Theme.text-3;
                     }
                 }
                 recent-grid := TileGrid {
@@ -204,10 +206,9 @@ export component HomePage inherits Rectangle {
                     SectionHead {
                         title: "Ваши плейлисты";
                     }
-                    if root.playlists.length == 0: Text {
+                    if root.playlists.length == 0: EmptyHint {
+                        icon: Icons.library;
                         text: "Плейлисты появятся после первого входа";
-                        font-size: 13px;
-                        color: Theme.text-3;
                     }
                 }
                 playlists-grid := TileGrid {

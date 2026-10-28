@@ -35,6 +35,9 @@ export component MainWindow inherits Window {
     min-width: 960px;
     min-height: 600px;
     background: Theme.bg;
+    // Стартовый фокус — на горячие клавиши (Space и стрелки работают
+    // сразу; в поле поиска фокус уходит только при клике в него).
+    forward-focus: hotkeys;
 
     // ================= Состояние =================
     in-out property <bool> logged-in: false;
@@ -42,6 +45,12 @@ export component MainWindow inherits Window {
                                                    // 3 скачанное, 4 волна, 5 настройки, 6 радио
     in-out property <bool> queue-open: true;
     in-out property <bool> win-maximized: false;
+
+    // Адаптивные ширины боковых панелей: доля окна с ограничениями
+    // (раньше 300px/380px были жёстко зашиты — на узком окне
+    // область контента сжималась агрессивно).
+    property <length> queue-panel-w: min(340px, max(248px, root.width * 0.22));
+    property <length> lyrics-panel-w: min(430px, max(288px, root.width * 0.3));
 
     // ---- Пользователь ----
     in-out property <string> user-name: "";
@@ -213,6 +222,48 @@ export component MainWindow inherits Window {
         Rectangle {
             vertical-stretch: 1;
 
+            // Горячие клавиши приложения: Space — play/pause, стрелки —
+            // перемотка ±5с и громкость ±5%, Escape — закрыть панель/
+            // плейлист. Живёт вне условий входа, чтобы фокус был стабилен.
+            hotkeys := FocusScope {
+                width: 0px; height: 0px;
+                // Явно берём фокус при создании: forward-focus окна
+                // срабатывает не на всех бэкендах/WM (например, без
+                // оконного менеджера событие активации не приходит).
+                init => { self.focus(); }
+                key-pressed(event) => {
+                    if (!root.logged-in) { return reject; }
+                    if (event.text == Key.Space) {
+                        root.player-toggle();
+                        return accept;
+                    }
+                    if (event.text == Key.RightArrow && root.duration-sec > 0) {
+                        root.player-seek(min(0.999, (root.position-sec + 5) / root.duration-sec));
+                        return accept;
+                    }
+                    if (event.text == Key.LeftArrow && root.duration-sec > 0) {
+                        root.player-seek(max(0, (root.position-sec - 5) / root.duration-sec));
+                        return accept;
+                    }
+                    if (event.text == Key.UpArrow) {
+                        root.volume = min(1, root.volume + 0.05);
+                        root.player-set-volume(root.volume);
+                        return accept;
+                    }
+                    if (event.text == Key.DownArrow) {
+                        root.volume = max(0, root.volume - 0.05);
+                        root.player-set-volume(root.volume);
+                        return accept;
+                    }
+                    if (event.text == Key.Escape) {
+                        if (root.lyrics-open) { root.lyrics-open = false; return accept; }
+                        if (root.queue-open) { root.queue-open = false; return accept; }
+                        if (root.playlist-open) { root.playlist-open = false; return accept; }
+                    }
+                    return reject;
+                }
+            }
+
             // ============= Экран входа =============
             if !root.logged-in: LoginPage {
                 width: 100%;
@@ -247,6 +298,8 @@ export component MainWindow inherits Window {
                     navigate(p) => {
                         root.playlist-open = false;
                         root.page = p;
+                        // Возвращаем фокус горячим клавишам после навигации.
+                        hotkeys.focus();
                     }
                 }
 
@@ -255,7 +308,7 @@ export component MainWindow inherits Window {
                     x: 264px;
                     y: 0;
                     width: parent.width - self.x
-                        - (root.lyrics-open ? 380px : (root.queue-open ? 300px : 0px));
+                        - (root.lyrics-open ? root.lyrics-panel-w : (root.queue-open ? root.queue-panel-w : 0px));
                     height: parent.height - 104px;
 
                     if root.page == 0: HomePage {
@@ -280,9 +333,9 @@ export component MainWindow inherits Window {
                         tracks: root.search-tracks;
                         tracks-total: root.search-total;
                         suggestions: root.search-suggestions;
-                        search(t) => { root.search(t); }
+                        search(t) => { root.search(t); hotkeys.focus(); }
                         suggest(t) => { root.suggest(t); }
-                        accept-suggestion(s) => { root.accept-suggestion(s); }
+                        accept-suggestion(s) => { root.accept-suggestion(s); hotkeys.focus(); }
                         play-best => { root.play-best(); }
                         play-index(i) => { root.play-from-search(i); }
                         like-toggled(i) => { root.search-like-toggled(i); }
@@ -370,6 +423,7 @@ export component MainWindow inherits Window {
                     x: parent.width - self.width;
                     y: 0;
                     height: parent.height - 104px;
+                    panel-width: root.queue-panel-w;
                     items: root.queue-items;
                     source-label: root.queue-source;
                     play-index(i) => { root.queue-play-index(i); }
@@ -382,6 +436,7 @@ export component MainWindow inherits Window {
                     x: parent.width - self.width;
                     y: 0;
                     height: parent.height - 104px;
+                    panel-width: root.lyrics-panel-w;
                     title: root.cur-title;
                     artists: root.cur-artists;
                     state: root.lyrics-state;
