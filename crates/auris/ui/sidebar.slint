@@ -15,9 +15,11 @@ export component NavItem inherits Rectangle {
               : ta.has-hover ? Theme.fill : transparent;
     animate background { duration: 100ms; }
 
-    // Индикатор слева
+    // Индикатор слева: доводим его до левого края сайдбара
+    // (пункт сидит внутри layout с padding-left: 10px — прежний
+    // x: -2px оставлял полоску «висеть» в 8px от края).
     Rectangle {
-        x: -2px;
+        x: -10px;
         width: 3px;
         y: 11px; height: parent.height - 22px;
         border-radius: 2px;
@@ -57,7 +59,10 @@ export component SideBar inherits Rectangle {
     callback navigate(int);
 
     width: 264px;
-    background: rgba(255, 255, 255, 0.015);
+    // Лёгкая подложка из темы: цвет заливки контролов с малой альфой
+    // (в тёмных темах — белый, в светлых — чёрный; раньше хардкод
+    // rgba(255,255,255,0.015) делал сайдбар грязным на светлом фоне).
+    background: Theme.fill.with-alpha(0.015);
     // правая граница (Slint не умеет бордеры по сторонам)
     Rectangle {
         x: parent.width - 1px;

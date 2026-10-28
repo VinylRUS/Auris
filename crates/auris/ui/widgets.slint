@@ -84,7 +84,12 @@ export component PlayButton inherits Rectangle {
 
     width: size; height: size;
     border-radius: size / 2;
-    background: ta.has-hover ? Theme.accent : Theme.accent-deep;
+    // Hover мягко СВЕТЛИТ базу (accent-deep), а не заменяет её
+    // «чистым» акцентом: раньше кнопка в тёмной теме целиком
+    // прыгала в светлый цвет (#0067C0 → #4CC2FF) и теряла контраст текста.
+    background: ta.pressed ? Theme.accent-deep.darker(0.18)
+              : ta.has-hover ? Theme.accent-deep.brighter(0.14)
+              : Theme.accent-deep;
     animate background { duration: 130ms; }
 
     transform-scale-x: ta.pressed ? 94% : ta.has-hover ? 106% : 100%;
@@ -114,8 +119,12 @@ export component ActionButton inherits Rectangle {
 
     height: 34px;
     border-radius: Theme.r-ctl;
+    // Акцентная кнопка: база accent-deep, hover мягко светлит (см.
+    // PlayButton — раньше hover подменял базу «чистым» акцентом,
+    // из-за чего контраст текста прыгал при наведении).
     background: accent
-        ? (ta.pressed ? Theme.accent-deep : ta.has-hover ? Theme.accent : Theme.accent-deep)
+        ? (ta.pressed ? Theme.accent-deep.darker(0.18)
+           : ta.has-hover ? Theme.accent-deep.brighter(0.14) : Theme.accent-deep)
         : (ta.pressed ? Theme.fill-hover : ta.has-hover ? Theme.fill-hover : Theme.fill);
     border-width: accent ? 0px : 1px;
     border-color: Theme.stroke-strong;
@@ -302,7 +311,7 @@ export component TileCard inherits Rectangle {
         }
     }
 
-    // Затемнение + круглая play-кнопка при наведении
+    // Затемнение + круглая play-кнопка при наведении (выезжает снизу)
     Rectangle {
         y: 0;
         width: root.tile-size;
@@ -316,7 +325,10 @@ export component TileCard inherits Rectangle {
             width: 46px; height: 46px;
             border-radius: 23px;
             x: (parent.width - self.width) / 2;
-            y: (parent.height - self.height) / 2;
+            // Лёгкий slide-up при появлении — раньше кнопка возникала
+            // мгновенно, без анимации положения.
+            y: (parent.height - self.height) / 2 + (ta.has-hover ? 0px : 14px);
+            animate y { duration: 180ms; easing: ease-out; }
             background: Theme.accent-deep;
             drop-shadow-blur: 14px;
             drop-shadow-offset-y: 4px;
@@ -334,6 +346,41 @@ export component TileCard inherits Rectangle {
     ta := TouchArea {
         mouse-cursor: pointer;
         clicked => { root.clicked(); }
+    }
+}
+
+// ---------- Пустое состояние (иконка + подпись в карточке) ----------
+// Замена голой серой строке: страница без данных выглядит обжитой,
+// а не «сломанной».
+export component EmptyHint inherits Rectangle {
+    in property <string> text: "";
+    in property <image> icon: Icons.note;
+    in property <length> hint-height: 96px;
+
+    height: hint-height;
+    border-radius: Theme.r-card;
+    background: Theme.fill.with-alpha(0.012);
+    border-width: 1px;
+    border-color: Theme.stroke;
+
+    HorizontalLayout {
+        padding-left: 20px;
+        padding-right: 20px;
+        alignment: center;
+        spacing: 12px;
+        Icon {
+            source: root.icon;
+            size: 22px;
+            tint: Theme.text-3;
+            opacity: 0.8;
+        }
+        Text {
+            text: root.text;
+            font-size: 13px;
+            color: Theme.text-3;
+            vertical-alignment: center;
+            overflow: elide;
+        }
     }
 }
 

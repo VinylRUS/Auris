@@ -245,14 +245,27 @@ impl Theme {
 
         // Заливка выделения: 15% акцента.
         self.accent_fill = format!("#26{r:02X}{g:02X}{b:02X}");
-        self.text_on_accent_fill = self.accent.clone();
 
-        // Белый текст на акценте, если акцент тёмный, иначе — почти чёрный.
-        let lum = luminance(r, g, b);
-        self.text_on_accent = if lum < 0.6 {
+        // Текст на кнопке контрастен её БАЗЕ (accent-deep — именно он
+        // фон кнопок в покое), а не «чистому» акценту. Раньше текст
+        // считался по яркости акцента: для светлого акцента получали
+        // тёмный текст, который терялся на светлом accent-deep.
+        // Порог 0.4: белый текст читается только на действительно
+        // тёмной базе (жёлтые/золотые даже затемнённые остаются светлыми
+        // — на них нужен тёмный текст, ~9:1 против ~2:1 у белого).
+        let lum = luminance(dr, dg, db);
+        self.text_on_accent = if lum < 0.4 {
             "#FFFFFF".into()
         } else {
             "#151515".into()
+        };
+
+        // Текст на 15%-заливке лежит почти на фоне темы: в светлых
+        // темах читается только затемнённый акцент, в тёмных — сам акцент.
+        self.text_on_accent_fill = if self.is_light() {
+            self.accent_deep.clone()
+        } else {
+            self.accent.clone()
         };
     }
 
@@ -312,6 +325,35 @@ mod tests {
 
         t.apply_accent("#0067C0");
         assert_eq!(t.text_on_accent, "#FFFFFF", "на синем акценте текст белый");
+    }
+
+    /// Текст на кнопке должен контрастировать с её базой (accent-deep),
+    /// а не с «чистым» акцентом: регрессия светлых акцентов.
+    #[test]
+    fn text_on_accent_contrasts_button_base() {
+        // Светлый акцент в тёмной теме: кнопка = darken(#FFD700) = #D1B000,
+        // на ней нужен тёмный текст (белый давал бы ~2:1).
+        let mut t = Theme::fluent_dark();
+        t.apply_accent("#FFD700");
+        assert_eq!(t.accent_deep, "#D1B000");
+        assert_eq!(
+            t.text_on_accent, "#151515",
+            "тёмный текст на светлой базе кнопки"
+        );
+
+        // Средний акцент: затемнённая база #3EA0D1 достаточно тёмная
+        // для белого текста.
+        t.apply_accent("#4CC2FF");
+        assert_eq!(t.text_on_accent, "#FFFFFF");
+
+        // Тот же жёлтый акцент в светлой теме: заливка почти сливается
+        // с фоном, текст на ней — затемнённый акцент.
+        let mut l = Theme::fluent_light();
+        l.apply_accent("#FFD700");
+        assert_eq!(l.text_on_accent_fill, "#D1B000");
+        // В тёмной — сам акцент (светлый на тёмном фоне).
+        t.apply_accent("#FFD700");
+        assert_eq!(t.text_on_accent_fill, "#FFD700");
     }
 
     #[test]
