@@ -38,7 +38,7 @@ impl App {
         let Some(info) = self.downloads.pick_info(&infos) else {
             anyhow::bail!("трек недоступен для воспроизведения (нужна подписка?)");
         };
-        let info_url = info.url.clone();
+        let info_url = info.download_info_url.clone();
         let tag = format!("{}k", info.bitrate_in_kbps);
         let link = auris_api::sign::direct_link(&client.http(), &info_url).await?;
         let file = self.cache.fetch_audio(track.id, &tag, &link).await?;

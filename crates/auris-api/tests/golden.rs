@@ -137,6 +137,11 @@ fn parses_download_info_and_signs() {
     assert_eq!(infos[2].codec, "mp3");
     assert_eq!(infos[2].bitrate_in_kbps, 320);
     assert!(infos[2].direct);
+    // Живое поле — downloadInfoUrl; раньше модель ждала `url` и молча
+    // получала пустую строку (см. models/download.rs).
+    assert!(infos[2].download_info_url.starts_with("https://"));
+    assert!(infos[0].download_info_url.starts_with("https://"));
+    assert!(!infos.iter().any(|i| i.download_info_url.is_empty()));
 
     let xml = fixture("download_info.xml");
     let meta = sign::parse_meta(&xml).unwrap();

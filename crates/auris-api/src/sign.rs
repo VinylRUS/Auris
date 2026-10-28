@@ -75,6 +75,16 @@ pub fn build_direct_link(meta: &FileMeta) -> String {
 
 /// Загружает XML по ссылке из `download-info` и сразу собирает прямую ссылку.
 pub async fn direct_link(http: &reqwest::Client, info_url: &str) -> Result<String> {
+    // Пустой/относительный URL — симптом рассинхронизации модели с API
+    // (например, переименовали поле). Reqwest в таком случае падает с
+    // малопонятным «builder error: relative URL without a base» —
+    // заменим на явную причину.
+    if !info_url.starts_with("http://") && !info_url.starts_with("https://") {
+        return Err(ApiError::Unexpected(format!(
+            "download-info вернул непригодный URL ({info_url:?}): \
+             модель рассинхронизирована с API или трек недоступен"
+        )));
+    }
     let xml = http
         .get(info_url)
         .send()
@@ -98,6 +108,18 @@ fn hex(bytes: &[u8]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Пустой/относительный URL должен давать понятную ошибку,
+    /// а не «builder error: relative URL without a base» из reqwest.
+    #[tokio::test]
+    async fn rejects_relative_url_with_clear_error() {
+        let http = reqwest::Client::new();
+        for bad in ["", "/get-audio-info", "storage.mds.yandex.net/x"] {
+            let err = direct_link(&http, bad).await.unwrap_err();
+            let msg = format!("{err}");
+            assert!(msg.contains("непригодный URL"), "got: {msg}");
+        }
+    }
 
     #[test]
     fn parses_meta_and_builds_link() {

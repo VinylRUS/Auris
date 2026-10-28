@@ -340,22 +340,37 @@ impl App {
             .feed()
             .await
             .map_err(|e| anyhow::anyhow!("feed: {e}"))?;
-        let playlists = client
-            .users_playlists_list(uid)
-            .await
-            .map_err(|e| anyhow::anyhow!("playlists: {e}"))?;
-        // Лайки — только идентификаторы (счётчик + сердечки): эндпоинт
-        // отдаёт укороченные записи, а полные карточки и обложки
-        // догружаются при открытии «Мне нравится».
-        let (likes, likes_albums, likes_artists) = tokio::join!(
-            client.users_likes_tracks_ids(uid),
-            client.users_likes_albums(uid),
-            client.users_likes_artists(uid)
-        );
-        let likes = likes.map_err(|e| anyhow::anyhow!("likes: {e}"))?;
-        // Лайки альбомов/исполнителей не критичны — при ошибке просто пустые.
-        let likes_albums = likes_albums.unwrap_or_default();
-        let likes_artists = likes_artists.unwrap_or_default();
+        // Аккаунт ещё не загружен (вход не завершён) — пользовательские
+        // списки и лайки недоступны: раньше `users_playlists_list(0)`
+        // валился с 400 «invalid uid: 0» и ломал всю главную.
+        let (playlists, likes, likes_albums, likes_artists) = if uid != 0 {
+            let playlists = client
+                .users_playlists_list(uid)
+                .await
+                .map_err(|e| anyhow::anyhow!("playlists: {e}"))?;
+            // Лайки — только идентификаторы (счётчик + сердечки): эндпоинт
+            // отдаёт укороченные записи, а полные карточки и обложки
+            // догружаются при открытии «Мне нравится».
+            let (likes, likes_albums, likes_artists) = tokio::join!(
+                client.users_likes_tracks_ids(uid),
+                client.users_likes_albums(uid),
+                client.users_likes_artists(uid)
+            );
+            let likes = likes.map_err(|e| anyhow::anyhow!("likes: {e}"))?;
+            // Лайки альбомов/исполнителей не критичны — при ошибке просто пустые.
+            (
+                playlists,
+                likes,
+                likes_albums.unwrap_or_default(),
+                likes_artists.unwrap_or_default(),
+            )
+        } else {
+            log::warn!(
+                "home: аккаунт ещё не загружен (uid неизвестен) — \
+                 показываю ленту без плейлистов и лайков"
+            );
+            (Vec::new(), Default::default(), Vec::new(), Vec::new())
+        };
 
         // Лайки: множество id
         {

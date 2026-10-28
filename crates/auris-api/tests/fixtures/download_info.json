@@ -4,9 +4,8 @@
     "bitrateInKbps": 64,
     "gain": true,
     "preview": false,
-    "downloadInfoUrl": "",
+    "downloadInfoUrl": "https://storage.mds.yandex.net/audio-headers/03/ae/track-64.aac",
     "direct": false,
-    "url": "https://storage.mds.yandex.net/audio-headers/03/get-audio-info",
     "supplier": "default"
   },
   {
@@ -14,8 +13,8 @@
     "bitrateInKbps": 192,
     "gain": true,
     "preview": false,
+    "downloadInfoUrl": "https://storage.mds.yandex.net/audio-headers/03/ae/track-192.mp3",
     "direct": false,
-    "url": "https://storage.mds.yandex.net/audio-headers/03/get-audio-info",
     "supplier": "default"
   },
   {
@@ -23,8 +22,8 @@
     "bitrateInKbps": 320,
     "gain": true,
     "preview": false,
+    "downloadInfoUrl": "https://storage.mds.yandex.net/audio-headers/03/ae/track-320.mp3",
     "direct": true,
-    "url": "https://storage.mds.yandex.net/audio-headers/03/get-audio-info",
     "supplier": "default"
   }
 ]
